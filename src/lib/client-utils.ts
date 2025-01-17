@@ -59,7 +59,7 @@ export function createAudioAnalyser(
     
             mdenoiseTools.loadSpeex({ url: speexWasmPath }).then((speexWasmBinary: any) => {
                 
-                audioContext?.audioWorklet.addModule(speexWorkletPath).then(() => {
+                audioContext?.audioWorklet?.addModule(speexWorkletPath).then(() => {
                     if(!audioContext || audioContext.state != 'running') return
                     const speexn: AudioNode = new mdenoiseTools.SpeexWorkletNode(audioContext, {
                         wasmBinary: speexWasmBinary,
@@ -79,7 +79,7 @@ export function createAudioAnalyser(
             simdUrl: rnnoiseWasmSimdPath
           }).then((RNNWasmBinary: any) => {
             
-                audioContext?.audioWorklet.addModule(rnnWorkletPath).then(() => {
+                audioContext?.audioWorklet?.addModule(rnnWorkletPath).then(() => {
                 if(!audioContext || audioContext.state != 'running') return
                 
                 const mrnnoise: AudioNode =  new mdenoiseTools.RnnoiseWorkletNode(audioContext, {

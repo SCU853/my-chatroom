@@ -25,13 +25,21 @@ export function useSetContext() {
         }
         const mctx = setUpContext();
         const  DetectRTC = require('detectrtc');
+
+        if (mctx.audioWorklet) {
+            console.log('AudioWorklet is supported');
+        } else {
+            console.log('AudioWorklet is not supported');
+            console.log(`ctx.state: ${mctx.state}`)
+        }
+
         if(DetectRTC.browser.isChrome || DetectRTC.browser.isFirefox || DetectRTC.browser.isEdge){
-            mctx.audioWorklet.addModule(speexWorkletPath)
-            mctx.audioWorklet.addModule(rnnWorkletPath)
+            mctx?.audioWorklet?.addModule(speexWorkletPath)
+            mctx?.audioWorklet?.addModule(rnnWorkletPath)
         }
         return () => {
             if(ctx && ctx.state === 'running') ctx.suspend()
         }
     }, []);
-    return { ctx};
+    return { ctx };
 }

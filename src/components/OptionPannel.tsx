@@ -9,6 +9,7 @@ import { useCurState } from "@/lib/hooks/useCurState";
 import { useRoomInfo } from "@/lib/hooks/useRoomInfo";
 import SettingIcon from "./Icons/SettingIcon";
 import { useTranslation } from "react-i18next";
+import { useWebAudioContext } from "@/lib/context/webAudioContex";
 
 export function OptionPanel({showIcon,showText, ...props}: any) {
     const roominfo_after_enter = useRoomInfo()
@@ -19,6 +20,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
     const [config, setConfig] = useState<DenoiseMethod>( {...defaultAudioSetting.denoiseMethod});
     const isMainBrowser  = useMainBrowser()
     const { t, i18n } = useTranslation()
+    const ctx = useWebAudioContext()
     const isnumber = (nubmer: string) => {
         const re = /^[1-9]\d*$/;//判断字符串是否为数字//判断正整数/[1−9]+[0−9]∗]∗/ 
         if (!re.test(nubmer)) {
@@ -52,6 +54,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
 
         //如果没有修改就不需要更新
         if(compareObjects(config,denoiseSetting)) return
+
         denoiseMethod$.next(deepClone(config))
     }
 
@@ -143,6 +146,9 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                                 <span className=" sm:text-xl font-bold">{t('setting.cdm')}</span>
                                 <div className=" my-2 w-full flex justify-around"   onChange={(v: any) => {
                                     if (config == null) return;
+                                    // audiocontext中没有audioWorklet
+                                    if(!ctx.audioWorklet) return;
+
                                     const new_config = { ...config };
                                     new_config.speex = false
                                     new_config.rnn = false
