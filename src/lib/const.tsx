@@ -11,23 +11,24 @@ export const defaultAudioSetting: AudioSetting = {
     noiseSuppression: true,
     denoiseMethod: {
         speex: false,
-        rnn: false
-    }
+        rnn: false,
+        krispNoiseDenoise: false
+    },
 }
 
 export const publishDefaults: TrackPublishDefaults = {
-    audioBitrate: AudioPresets.musicStereo.maxBitrate,
+    audioPreset: AudioPresets.musicStereo,
     dtx: true,
     red: true,
     forceStereo: false,
     simulcast: false,
     // videoSimulcastLayers: simulcast_set,
     // screenShareEncoding: ScreenSharePresets.h1080fps15.encoding,
-    screenShareEncoding: s_preset.encoding,
+    screenShareEncoding: v_preset.encoding,
     stopMicTrackOnMute: false,
-    videoEncoding: s_preset.encoding ,
+    videoEncoding: v_preset.encoding ,
     videoCodec: 'vp8',
-    backupCodec: { codec: 'vp8', encoding: VideoPresets.h540.encoding },
+    backupCodec: { codec: 'vp8', encoding: VideoPresets.h720.encoding },
 } as const;
 
 // export const lru = {lru: new LRUCache({ max: 500, ttl:1000 * 60 * 60 * 24 }), time:  new Date() }

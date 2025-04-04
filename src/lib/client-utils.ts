@@ -23,7 +23,45 @@ export function useServerUrl(region?: string) {
   return serverUrl;
 }
 
+/**
+ *  node_modules\livekit-client\src\room\utils.ts 搬运
+ * @internal
+ */
+export function getNewAudioContext(): AudioContext | void {
+    const AudioContext =
+      // @ts-ignore
+      typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+    if (AudioContext) {
+      const audioContext = new AudioContext({ latencyHint: 'interactive' });
+      // If the audio context is suspended, we need to resume it when the user clicks on the page
+      if (
+        audioContext.state === 'suspended' &&
+        typeof window !== 'undefined' &&
+        window.document?.body
+      ) {
+        const handleResume = async () => {
+          try {
+            if (audioContext.state === 'suspended') {
+              await audioContext.resume();
+            }
+          } catch (e) {
+            console.warn('Error trying to auto-resume audio context', e);
+          }
+  
+          window.document.body?.removeEventListener('click', handleResume);
+        };
+        window.document.body.addEventListener('click', handleResume);
+      }
+      return audioContext;
+    }
+  }
 
+/**
+ * node_modules\livekit-client\src\room\utils.ts 搬运
+ * Creates and returns an analyser web audio node that is attached to the provided track.
+ * Additionally returns a convenience method `calculateVolume` to perform instant volume readings on that track.
+ * Call the returned `cleanup` function to close the audioContext that has been created for the instance of this helper
+ */
 export function createAudioAnalyser(
     track: LocalAudioTrack | RemoteAudioTrack,
     denoiseMethod?: DenoiseMethod,
@@ -37,11 +75,12 @@ export function createAudioAnalyser(
       maxDecibels: -80,
       ...options,
     };
-    const audioContext = new AudioContext();
-
+    const audioContext = getNewAudioContext();
+  
     if (!audioContext) {
       throw new Error('Audio Context not supported on this browser');
     }
+  
     const streamTrack = opts.cloneTrack ? track.mediaStreamTrack.clone() : track.mediaStreamTrack;
     const mediaStreamSource = audioContext.createMediaStreamSource(new MediaStream([streamTrack]));
     const analyser = audioContext.createAnalyser();
@@ -49,39 +88,37 @@ export function createAudioAnalyser(
     analyser.maxDecibels = opts.maxDecibels;
     analyser.fftSize = opts.fftSize;
     analyser.smoothingTimeConstant = opts.smoothingTimeConstant;
-
+  
+    // begin 修改
     const mdenoiseTools = require('@sapphi-red/web-noise-suppressor')
     let speex: AudioNode | null = null;
     let rnn: AudioNode | null = null;
     // denoiseMethod = undefined
-    
     if(denoiseMethod?.speex){
     
-            mdenoiseTools.loadSpeex({ url: speexWasmPath }).then((speexWasmBinary: any) => {
-                
-                audioContext?.audioWorklet?.addModule(speexWorkletPath).then(() => {
-                    if(!audioContext || audioContext.state != 'running') return
-                    const speexn: AudioNode = new mdenoiseTools.SpeexWorkletNode(audioContext, {
-                        wasmBinary: speexWasmBinary,
-                        maxChannels: 2
-                    })
-                    
-                    speex = speexn;
-                    mediaStreamSource.connect(speex as AudioNode)
-                    speex.connect(analyser);
+        mdenoiseTools.loadSpeex({ url: speexWasmPath }).then((speexWasmBinary: any) => {
+            
+            audioContext?.audioWorklet?.addModule(speexWorkletPath).then(() => {
+                if(!audioContext || audioContext.state != 'running') return
+                const speexn: AudioNode = new mdenoiseTools.SpeexWorkletNode(audioContext, {
+                    wasmBinary: speexWasmBinary,
+                    maxChannels: 2
                 })
-            })
                 
+                speex = speexn;
+                mediaStreamSource.connect(speex as AudioNode)
+                speex.connect(analyser);
+            })
+        })
+            
     }else if(denoiseMethod?.rnn){
 
         mdenoiseTools.loadRnnoise({    
             url: rnnoiseWasmPath,
             simdUrl: rnnoiseWasmSimdPath
-          }).then((RNNWasmBinary: any) => {
-            
+        }).then((RNNWasmBinary: any) => {
                 audioContext?.audioWorklet?.addModule(rnnWorkletPath).then(() => {
                 if(!audioContext || audioContext.state != 'running') return
-                
                 const mrnnoise: AudioNode =  new mdenoiseTools.RnnoiseWorkletNode(audioContext, {
                     wasmBinary: RNNWasmBinary,
                     maxChannels: 2
@@ -95,6 +132,7 @@ export function createAudioAnalyser(
         mediaStreamSource.connect(analyser)
     }
 
+    //end修改
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
   
     /**
@@ -110,8 +148,8 @@ export function createAudioAnalyser(
       return volume;
     };
   
-    const cleanup = () => {
-      audioContext.close();
+    const cleanup = async () => {
+      await audioContext.close();
       if(speex) speex.disconnect()
       if(rnn) rnn.disconnect()
       if (opts.cloneTrack) {
@@ -121,7 +159,6 @@ export function createAudioAnalyser(
   
     return { calculateVolume, analyser, cleanup };
   }
-  
  export function compareObjects(obj1: any, obj2: any) {
     // 遍历第一个对象的属性
     for (let key in obj1) {

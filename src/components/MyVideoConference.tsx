@@ -4,10 +4,10 @@ import type {
     TrackReferenceOrPlaceholder,
     WidgetState,
   } from '@livekit/components-core';
-import { isEqualTrackRef, isTrackReference, isWeb, log } from '@livekit/components-core';
-import { RoomEvent, Track } from 'livekit-client';
-import * as React from 'react';
-import { useTracks, usePinnedTracks, LayoutContextProvider,
+  import { isEqualTrackRef, isTrackReference, isWeb, log } from '@livekit/components-core';
+  import { RoomEvent, Track } from 'livekit-client';
+  import * as React from 'react';
+  import { useTracks, usePinnedTracks, LayoutContextProvider,
     FocusLayoutContainer,
     ConnectionStateToast, MessageFormatter, useCreateLayoutContext,
 //  Chat, 
@@ -20,9 +20,8 @@ import { useTracks, usePinnedTracks, LayoutContextProvider,
 //  RoomAudioRenderer,
 //  ControlBar,
 } from '@livekit/components-react';
-import { useIsShareVideo } from '@/lib/hooks/useIsShareVideo';
-import { useCurState } from '@/lib/hooks/useCurState';
-import { VideoShareTile } from './VideoShare/VideoShareTile';
+//   import { useWarnAboutMissingStyles } from '../hooks/useWarnAboutMissingStyles';
+
 import {ControlBar} from "@/components/MyControlBar";
 import {FocusLayout} from "@/components/MyFocusLayout";
 import {Chat} from "@/components/MyChat";
@@ -30,6 +29,14 @@ import {ParticipantTile} from "@/components/MyParticipantTile";
 import {RoomAudioRenderer} from "@/components/MyRoomAudioRenderer";
 import { curState, curState$ } from '@/lib/observe/CurStateObs';
 import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs';
+import { useCurState } from '@/lib/hooks/useCurState';
+import { useIsShareVideo } from '@/lib/hooks/useIsShareVideo';
+import { VideoShareTile } from './VideoShare/VideoShareTile';
+import { useKrispNoiseFilter } from '@livekit/components-react/krisp';
+import { denoiseMethod$ } from '@/lib/observe/DenoiseMethodObs';
+import { defaultAudioSetting } from '@/lib/const';
+import { useObservableState } from '@/livekit-react-offical/hooks/internal';
+import { DenoiseMethod } from '@/lib/types';
   /**
    * @public
    */
@@ -37,6 +44,8 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
     chatMessageFormatter?: MessageFormatter;
     chatMessageEncoder?: MessageEncoder;
     chatMessageDecoder?: MessageDecoder;
+    /** @alpha */
+    SettingsComponent?: React.ComponentType;
   }
   
   /**
@@ -47,7 +56,7 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
    * @remarks
    * The component is implemented with other LiveKit components like `FocusContextProvider`,
    * `GridLayout`, `ControlBar`, `FocusLayoutContainer` and `FocusLayout`.
-   * You can use this components as a starting point for your own custom video conferencing application.
+   * You can use these components as a starting point for your own custom video conferencing application.
    *
    * @example
    * ```tsx
@@ -61,13 +70,20 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
     chatMessageFormatter,
     chatMessageDecoder,
     chatMessageEncoder,
+    SettingsComponent,
     ...props
   }: VideoConferenceProps) {
     const [widgetState, setWidgetState] = React.useState<WidgetState>({
       showChat: false,
       unreadMessages: 0,
+      showSettings: false,
     });
     const lastAutoFocusedScreenShareTrack = React.useRef<TrackReferenceOrPlaceholder | null>(null);
+    
+    // change by cwy
+    const denoiseMethod = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
+    const room = useRoomContext()
+    const participants = useParticipants()
     const sourceArrs = []
     if(process.env.NEXT_PUBLIC_USE_VIDEO === "true"){
         sourceArrs.push({ source: Track.Source.Camera, withPlaceholder: true })
@@ -77,18 +93,28 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
     if(process.env.NEXT_PUBLIC_USE_SCREEN === "true"){
         sourceArrs.push({  source: Track.Source.ScreenShare, withPlaceholder: false })
     }
-    //add cwy
-    const room = useRoomContext()
-    const participants = useParticipants()
     const tracks = useTracks(
-        sourceArrs,
+      sourceArrs,
       { updateOnlyOn: [RoomEvent.ActiveSpeakersChanged], onlySubscribed: false },
     );
-  
+
     const widgetUpdate = (state: WidgetState) => {
       log.debug('updating widget state', state);
       setWidgetState(state);
     };
+
+
+    // 降噪方法
+    const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } =  useKrispNoiseFilter();
+    React.useEffect(() => {
+        // 只有livekit.cloud才能使用Krisp降噪
+        if((process.env.LIVEKIT_URL || "11")?.indexOf('livekit.cloud') < 0) return
+        const denoiseMethodStr = localStorage.getItem('denoiseMethod')
+        const denoiseMethodObj: DenoiseMethod = denoiseMethodStr ? JSON.parse(denoiseMethodStr) : {...defaultAudioSetting.denoiseMethod}
+        // enable Krisp by default
+        setNoiseFilterEnabled(denoiseMethodObj.krispNoiseDenoise);
+        console.log('update Krisp', denoiseMethodObj.krispNoiseDenoise)
+      }, [denoiseMethod.krispNoiseDenoise]);
   
     const layoutContext = useCreateLayoutContext();
   
@@ -98,8 +124,6 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
   
     const focusTrack = usePinnedTracks(layoutContext)?.[0];
     const carouselTracks = tracks.filter((track) => !isEqualTrackRef(track, focusTrack));
-    const isShareVideo = useIsShareVideo()
-    const mcurState = useCurState()
 
     React.useEffect(() => {
       // If screen share tracks are published, and no pin is set explicitly, auto set the screen share.
@@ -122,15 +146,28 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
         layoutContext.pin.dispatch?.({ msg: 'clear_pin' });
         lastAutoFocusedScreenShareTrack.current = null;
       }
+      if (focusTrack && !isTrackReference(focusTrack)) {
+        const updatedFocusTrack = tracks.find(
+          (tr) =>
+            tr.participant.identity === focusTrack.participant.identity &&
+            tr.source === focusTrack.source,
+        );
+        if (updatedFocusTrack !== focusTrack && isTrackReference(updatedFocusTrack)) {
+          layoutContext.pin.dispatch?.({ msg: 'set_pin', trackReference: updatedFocusTrack });
+        }
+      }
     }, [
       screenShareTracks
         .map((ref) => `${ref.publication.trackSid}_${ref.publication.isSubscribed}`)
         .join(),
       focusTrack?.publication?.trackSid,
+      tracks,
     ]);
 
-      
       //add cwy 监视当前房间的信息，推送给roominfo$
+    const isShareVideo = useIsShareVideo()
+    const mcurState = useCurState()
+      
       React.useEffect(() => {
         const cus : curState = {
             join: true,
@@ -159,6 +196,10 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
         }
         curState$.next(cus)
     }, [participants.length, room.name, room.metadata, room])
+
+  
+    // useWarnAboutMissingStyles();
+  
     return (
       <div className="lk-video-conference" {...props}>
         {isWeb() && (
@@ -167,8 +208,8 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
             // onPinChange={handleFocusStateChange}
             onWidgetChange={widgetUpdate}
           >
-            <div className="lk-video-conference-inner h-full">
-              {!focusTrack && !isShareVideo  ? (
+            <div className="lk-video-conference-inner">
+              {!focusTrack  && !isShareVideo ? (
                 <div className="lk-grid-layout-wrapper">
                   <GridLayout tracks={tracks}>
                     <ParticipantTile />
@@ -195,12 +236,20 @@ import { RoomInfoUseForParticipant, roominfo$ } from '@/lib/observe/RoomInfoObs'
                 camera: process.env.NEXT_PUBLIC_USE_VIDEO === "true", chat: true, shareVideo: process.env.NEXT_PUBLIC_USE_SHAREVIDEO === "true" && !(focusTrack && !isShareVideo) }} />
             </div>
             <Chat
-            className='fixed  h-[80%] sm:h-full bottom-[4rem] sm:bottom-auto right-0 sm:right-auto sm:relative rounded-lg shadow-xl bg-secondary-focus p-2 flex flex-col-reverse'
-            style={{ display: widgetState.showChat ? 'flex' : 'none' }}
+              className='fixed  h-[80%] sm:h-full bottom-[4rem] sm:bottom-auto right-0 sm:right-auto sm:relative rounded-lg shadow-xl bg-secondary-focus p-2 flex flex-col-reverse'
+              style={{ display: widgetState.showChat ? 'flex' : 'none' }}
               messageFormatter={chatMessageFormatter}
               messageEncoder={chatMessageEncoder}
               messageDecoder={chatMessageDecoder}
             />
+            {SettingsComponent && (
+              <div
+                className="lk-settings-menu-modal"
+                style={{ display: widgetState.showSettings ? 'block' : 'none' }}
+              >
+                <SettingsComponent />
+              </div>
+            )}
           </LayoutContextProvider>
         )}
         <RoomAudioRenderer />

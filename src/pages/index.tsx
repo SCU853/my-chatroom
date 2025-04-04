@@ -51,10 +51,17 @@ class HomeComponent extends React.Component<WithTranslation> {
                     onChange={this.handleRoomIdTextChange}
                     className="w-48 rounded-lg border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition focus:border-white focus:outline-none focus:ring focus: ring-secondary-focus"
                     style={{ marginRight: 10 }}
+                    onKeyUp={(e) => {
+                        if (e.key === 'Enter') {
+                            if (this.state.roomIdText.length > 0) {
+                                window.location.href = `/${this.state.roomIdText}`;
+                            }
+                        }
+                    }}
                 />
                 <Link href={`/${this.state.roomIdText}`} > 
                     <button
-                        className=" font-bold btn-primary rounded-lg h-full w-20 border-none text-white"
+                        className="btn font-bold btn-primary rounded-lg h-full w-fit border-none text-white"
                     >
                         👉 {t('Go')}
                     </button>

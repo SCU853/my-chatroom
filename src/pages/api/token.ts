@@ -10,11 +10,11 @@ const apiKey = process.env.LIVEKIT_API_KEY;
 const apiSecret = process.env.LIVEKIT_API_SECRET;
 const wsUrl = process.env.LIVEKIT_URL;
 
-export const createToken = (userInfo: AccessTokenOptions, grant: VideoGrant) => {
+export const createToken = async (userInfo: AccessTokenOptions, grant: VideoGrant) => {
   const at = new AccessToken(apiKey, apiSecret, userInfo);
   at.ttl = '5m';
   at.addGrant(grant);
-  return at.toJwt();
+  return await at.toJwt();
 };
 // TODO最后一个人离开房间时重置密码
 export default async function handleToken(req: NextApiRequest, res: NextApiResponse) {
@@ -91,7 +91,7 @@ export default async function handleToken(req: NextApiRequest, res: NextApiRespo
         // console.log(`get passwd for ${roomName}, passwd: ${t2.passwd}`)
     }
 
-    const token = createToken({ identity, name, metadata: metadataProcess }, grant);
+    const token = await createToken({ identity, name, metadata: metadataProcess }, grant);
     const result: TokenResult = {
       identity,
       accessToken: token,

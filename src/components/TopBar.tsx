@@ -18,6 +18,7 @@ export default function TopBar() {
   const [showToast, setShowToast] = useState<boolean>(false);
   const [TostMsg, setTostMsg] = useState<string>("");
   const [TostTimer, setTostTimer] = useState<any>(null);
+  const [lng, setLng] = useState<string>('en');
 
 const roominfo_after_enter = useRoomInfo()
 
@@ -25,8 +26,19 @@ const router = useRouter();
 const mcurState = useCurState()
 const { t, i18n } = useTranslation()
 
+useEffect(() => {
+    const defaultLang = localStorage.getItem('lang') || 'en'
+    setLng(defaultLang)
+  }, [])
+
+useEffect(() => {
+    localStorage.setItem('lang', lng)
+    i18n.changeLanguage(lng)
+  }, [lng])
+
 const switchLanguage = () => {
-    i18n.changeLanguage(i18n.language=='en'?'zh':'en')
+    const lng = i18n.language=='en'?'zh':'en'
+    setLng(lng)
     setTostMsg(i18n.language=='zh'?'切换为中文':'Switch to English')
     if(TostTimer != null){
         setShowToast(false)
@@ -108,7 +120,7 @@ const isjoin = useMemo(() => {
         </div>
         </div>
 
-      <div className="flex-none z-10">
+      <div className="flex z-10">
         {/* The button to open record modal */}
         {
             !isMobile && 

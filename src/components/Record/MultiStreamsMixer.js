@@ -564,14 +564,14 @@ export default function MultiStreamsMixer(arrayOfMediaStreams, elementClass) {
 
 }
 
-if (typeof RecordRTC === 'undefined') {
-    if (typeof module !== 'undefined' /* && !!module.exports*/ ) {
-        module.exports = MultiStreamsMixer;
-    }
+// if (typeof RecordRTC === 'undefined') {
+//     if (typeof module !== 'undefined' /* && !!module.exports*/ ) {
+//         module.exports = MultiStreamsMixer;
+//     }
 
-    if (typeof define === 'function' && define.amd) {
-        define('MultiStreamsMixer', [], function() {
-            return MultiStreamsMixer;
-        });
-    }
-}
+//     if (typeof define === 'function' && define.amd) {
+//         define('MultiStreamsMixer', [], function() {
+//             return MultiStreamsMixer;
+//         });
+//     }
+// }

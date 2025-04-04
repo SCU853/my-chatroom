@@ -1,7 +1,8 @@
 
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "tailwindcss";
+@plugin "daisyui" {
+    themes: lemonade --default, lemonade --prefersdark, lemonade;;
+  }
 @import 'animate.css';
 #__next,
 main {
@@ -9,7 +10,9 @@ main {
   height: 100%;
   margin: 0px;
 }
-
+.lk-disconnect-button{
+    background-color: var(--lk-danger);
+}
 .lk-toast{
     z-index: 50;
     background-color: var(--lk-bg2);
@@ -128,4 +131,14 @@ main {
     --lk-connection-excellent: #06db4d;
     --lk-connection-good: #f9b11f;
     --lk-connection-poor: #f91f31;
+}
+
+.lk-audio-visualizer>rect {
+    fill: var(--lk-bg2);
+    transition: transform 100ms cubic-bezier(0.19, 0.02, 0.09, 1);
+}
+.lk-audio-visualizer>g>rect {
+    fill: var(--lk-fg);
+    transition: height .1s ease-out,y .1s ease-out;
+    rx: .25rem;
 }

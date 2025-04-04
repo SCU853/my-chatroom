@@ -10,17 +10,19 @@ import { useRoomInfo } from "@/lib/hooks/useRoomInfo";
 import SettingIcon from "./Icons/SettingIcon";
 import { useTranslation } from "react-i18next";
 import { useWebAudioContext } from "@/lib/context/webAudioContex";
-
+import { useKrispNoiseFilter } from '@livekit/components-react/krisp';
 export function OptionPanel({showIcon,showText, ...props}: any) {
     const roominfo_after_enter = useRoomInfo()
     const denoiseSetting = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
     const mcurState = useCurState()
     const [passwd, setPasswd] = useState("");
     const [capacity, setCapacity] = useState("");
-    const [config, setConfig] = useState<DenoiseMethod>( {...defaultAudioSetting.denoiseMethod});
+    const [isUseKrispDenoise, setIsUseKrispDenoise] = useState(false);
+    const [localDenoiseConfig, setLocalDenoiseConfig] = useState<DenoiseMethod>( {...defaultAudioSetting.denoiseMethod});
     const isMainBrowser  = useMainBrowser()
     const { t, i18n } = useTranslation()
     const ctx = useWebAudioContext()
+    const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } =  useKrispNoiseFilter();
     const isnumber = (nubmer: string) => {
         const re = /^[1-9]\d*$/;//判断字符串是否为数字//判断正整数/[1−9]+[0−9]∗]∗/ 
         if (!re.test(nubmer)) {
@@ -53,9 +55,14 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
         }
 
         //如果没有修改就不需要更新
-        if(compareObjects(config,denoiseSetting)) return
+        if(compareObjects(localDenoiseConfig,denoiseSetting)) return
 
-        denoiseMethod$.next(deepClone(config))
+        denoiseMethod$.next(deepClone(localDenoiseConfig))
+    }
+
+    const canUseKrisp = ()=>{
+        // 只有livekit.cloud才能使用Krisp降噪
+        return ((process.env.LIVEKIT_URL || "11")?.indexOf('livekit.cloud') > -1)
     }
 
     const updateRoomMeta = useCallback(
@@ -86,7 +93,6 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
         [roominfo_after_enter.room_name, passwd, capacity]
     );
 
-
     return (
         <div className=" flex text-center justify-center items-center ">
             <label htmlFor="optionModel" className="btn  border-none btn-primary text-white gap-1">
@@ -106,9 +112,9 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                     <label htmlFor="optionModel" className="btn btn-accent btn-sm btn-circle absolute right-2 top-2 ">✕</label>
                     {
                         mcurState.isAdmin &&
-                        <div className="pl-4 pr-12">
+                        <div className="pl-4 pr-12 space-y-2">
   
-                                <label className="label cursor-pointer justify-between">
+                                <label className="label w-full cursor-pointer justify-between p-2">
                                     <span className="label-text text-white sm:text-lg">{t('setting.passwd')}</span>
                                     <input
                                         className=" w-[10rem] input-sm sm:input-md rounded-lg border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition focus:border-white focus:outline-none focus:ring focus: ring-secondary-focus"
@@ -121,7 +127,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                                     />
                                 </label>
       
-                                <label className="label cursor-pointer justify-between">
+                                <label className="label w-full cursor-pointer justify-between p-2">
                                     <span className="label-text text-white sm:text-lg">{t('setting.capacity')}</span>
                                     <input
                                         className=" w-[10rem] input-sm sm:input-md rounded-lg border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition focus:border-white focus:outline-none focus:ring focus: ring-secondary-focus"
@@ -145,11 +151,11 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                         <div className=" divider mb-0"/>
                                 <span className=" sm:text-xl font-bold">{t('setting.cdm')}</span>
                                 <div className=" my-2 w-full flex justify-around"   onChange={(v: any) => {
-                                    if (config == null) return;
+                                    if (localDenoiseConfig == null) return;
                                     // audiocontext中没有audioWorklet
                                     if(!ctx.audioWorklet) return;
 
-                                    const new_config = { ...config };
+                                    const new_config = { ...localDenoiseConfig };
                                     new_config.speex = false
                                     new_config.rnn = false
                                     if(v.target.value == 'speex'){
@@ -157,25 +163,25 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                                     }else if(v.target.value == 'rnn'){
                                         new_config.rnn = true
                                     }
-                                    setConfig(new_config);
+                                    setLocalDenoiseConfig(new_config);
                                     // console.log("update!~")
                                 }}>
                                     <div className=" flex items-center gap-2 text-center">
-                                        <input type="radio" value="none" name="denoiseMethod" id="denoiseMethod1" className="radio radio-success" checked={config ? config.speex == false &&  config.rnn == false : false}
+                                        <input type="radio" value="none" name="denoiseMethod" id="denoiseMethod1" className="radio radio-success" checked={localDenoiseConfig ? localDenoiseConfig.speex == false &&  localDenoiseConfig.rnn == false : false}
                                         onChange={(v) => {}}
                                         ></input>
                                         <label htmlFor="denoiseMethod1" >None</label>
                                     </div>
 
                                     <div className=" flex items-center gap-2 text-center">
-                                    <input type="radio" value="speex" name="denoiseMethod2" id="denoiseMethod2" className="radio radio-success" checked={config ? config.speex : false}
+                                    <input type="radio" value="speex" name="denoiseMethod2" id="denoiseMethod2" className="radio radio-success" checked={localDenoiseConfig ? localDenoiseConfig.speex : false}
                                      onChange={(v) => {}}
                                     ></input>
                                     <label htmlFor="denoiseMethod2" >Speex</label>
                                     </div>
 
                                     <div className=" flex items-center gap-2 text-center">
-                                    <input type="radio" value="rnn"  name="denoiseMethod3" id="denoiseMethod3" className="radio radio-success" checked={config ? config.rnn : false}
+                                    <input type="radio" value="rnn"  name="denoiseMethod3" id="denoiseMethod3" className="radio radio-success" checked={localDenoiseConfig ? localDenoiseConfig.rnn : false}
                                      onChange={(v) => {}}
                                     ></input>
                                     <label htmlFor="denoiseMethod3" >Rnn</label>
@@ -183,6 +189,19 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                                 </div>
                         </div>
                     }
+
+                    <div className=" divider mb-0"/>
+                    <div className="w-full flex justify-center space-x-2">
+                        <div>keKrispNoise</div>
+                        <input type="checkbox"  checked={isUseKrispDenoise} disabled={isNoiseFilterPending || !canUseKrisp} className="checkbox" onChange={(v) => {
+                            setIsUseKrispDenoise(v.target.checked)
+
+                            const new_config = { ...localDenoiseConfig };
+                            new_config.krispNoiseDenoise = v.target.checked
+                            setLocalDenoiseConfig(new_config);
+                            localStorage.setItem('denoiseMethod', JSON.stringify(new_config))
+                        }} />
+                    </div>
                         
                     <div className=" w-full flex justify-center">
                         <label htmlFor="optionModel" className="btn btn-md btn-secondary border-none mt-2" onClick={handleSubmit}>

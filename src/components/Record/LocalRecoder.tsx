@@ -113,8 +113,9 @@ const LocalRecorderComponent = React.memo(({recordingChange}: LocalRecorderCompo
                 <span className=' text-lg font-bold mb-2'>⚠️为了良好的体验，请使用chrome进行录制，safari无法录制扬声器</span>
                 {/* 选项 */}
                 <div className='flex gap-6 pb-2'>
-                    <div className="ml-4 form-control border rounded-md bg-black bg-opacity-10   w-[200px]">
-                        <label className="cursor-pointer label">
+                    <div className="ml-4 p-2 form-control border rounded-md bg-black/10 flex flex-col 
+                    space-y-4  justify-center items-center  w-[200px]">
+                        <label className="cursor-pointer w-full justify-between label">
                             <span className="label-text ">录制麦克风</span>
                             <input
                                 type="checkbox"
@@ -125,7 +126,7 @@ const LocalRecorderComponent = React.memo(({recordingChange}: LocalRecorderCompo
                                 className="checkbox checkbox-accent bg-white"
                             />
                         </label>
-                        <label className="cursor-pointer label">
+                        <label className="cursor-pointer w-full justify-between label">
                             <span className="label-text ">录制扬声器</span>
                             <input
                                 type="checkbox"
@@ -139,7 +140,7 @@ const LocalRecorderComponent = React.memo(({recordingChange}: LocalRecorderCompo
                                 className="checkbox checkbox-accent bg-white"
                             />
                         </label>
-                        <label className="cursor-pointer label">
+                        <label className="cursor-pointer w-full justify-between label">
                             <span className="label-text ">录制屏幕</span>
                             <input
                                 type="checkbox"
@@ -154,11 +155,11 @@ const LocalRecorderComponent = React.memo(({recordingChange}: LocalRecorderCompo
                             />
                         </label>
                     </div>
-                    <div ref={resolutionBtnRef} className="btn-group btn-group-vertical">
-                        <button className="btn btn-active" onClick={(e)=>{handleChange(e, 0)}}>Default</button>
-                        <button className="btn" onClick={(e)=>{handleChange(e, 1)}}>720p</button>
-                        <button className="btn" onClick={(e)=>{handleChange(e, 2)}}>1080p</button>
-                        <button className="btn" onClick={(e)=>{handleChange(e, 3)}}>2k</button>
+                    <div ref={resolutionBtnRef} className="btn-group space-x-2 btn-group-vertical">
+                        <button className="btn btn-soft btn-primary btn-active" onClick={(e)=>{handleChange(e, 0)}}>Default</button>
+                        <button className="btn btn-soft btn-primary" onClick={(e)=>{handleChange(e, 1)}}>720p</button>
+                        <button className="btn btn-soft btn-primary" onClick={(e)=>{handleChange(e, 2)}}>1080p</button>
+                        <button className="btn btn-soft btn-primary" onClick={(e)=>{handleChange(e, 3)}}>2k</button>
                     </div>
                 </div>
 

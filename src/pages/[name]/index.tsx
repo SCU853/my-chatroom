@@ -184,7 +184,7 @@ const ActiveRoom = ({ roomName, userChoices, onLeave }: ActiveRoomProps) => {
 
   roomOptions.e2ee = e2eeOptions;
   const room = useMemo(() => new Room(roomOptions), [roomOptions]);
-  !!e2eeOptions && !!process.env.NEXT_PUBLIC_E2EETOKEN && room.setE2EEEnabled(true);
+  !!e2eeOptions && process.env.NEXT_PUBLIC_E2EETOKEN === 'true' && room.setE2EEEnabled(true);
 
   return (
     <div className="w-full top-16 relative" style={{ height: 'calc(100% - 4rem)' }}>

@@ -417,7 +417,7 @@ export type LocalUserChoices = {
         )}
 
         <button
-        className=" btn-primary rounded-lg text-white  w-32 border-none font-bold"
+        className="btn btn-primary rounded-lg text-white h-[48px]  w-fit border-none font-bold"
         type="submit"
         onClick={(e)=>{
             handleSubmit(e)

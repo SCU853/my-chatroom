@@ -1,7 +1,14 @@
 /* eslint-disable no-return-assign */
 /* eslint-disable no-underscore-dangle */
 import * as React from 'react';
-import useLatest from '@react-hook/latest';
+
+const useLatest = <T>(current: T) => {
+  const storedValue = React.useRef(current);
+  React.useEffect(() => {
+    storedValue.current = current;
+  });
+  return storedValue;
+};
 
 /**
  * A React hook that fires a callback whenever ResizeObserver detects a change to its size
@@ -16,7 +23,7 @@ export function useResizeObserver<T extends HTMLElement>(
   const resizeObserver = getResizeObserver();
   const storedCallback = useLatest(callback);
 
-  React.useEffect (() => {
+  React.useLayoutEffect(() => {
     let didUnsubscribe = false;
 
     const targetEl = target.current;
@@ -100,7 +107,7 @@ export type UseResizeObserverCallback = (
 
 export const useSize = (target: React.RefObject<HTMLDivElement>) => {
   const [size, setSize] = React.useState({ width: 0, height: 0 });
-  React.useEffect (() => {
+  React.useLayoutEffect(() => {
     if (target.current) {
       const { width, height } = target.current.getBoundingClientRect();
       setSize({ width, height });

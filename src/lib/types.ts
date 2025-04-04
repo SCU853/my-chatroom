@@ -24,13 +24,14 @@ export interface RoomMetadata  {
 
 export interface DenoiseMethod {
     speex: boolean
-    rnn: boolean
+    rnn: boolean,
+    krispNoiseDenoise: boolean
 }
 
 export interface AudioSetting  { 
     autoGainControl: boolean, 
     channelCount: number, 
     echoCancellation: boolean,
-     noiseSuppression: boolean,
-     denoiseMethod: DenoiseMethod
+    noiseSuppression: boolean,
+    denoiseMethod: DenoiseMethod
 }

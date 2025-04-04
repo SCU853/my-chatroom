@@ -2,8 +2,8 @@ import type { Participant, Track, TrackPublication } from 'livekit-client';
 import * as React from 'react';
 import type { TrackReference } from '@livekit/components-core';
 import { log } from '@livekit/components-core';
-import { useEnsureParticipant, useMaybeTrackRefContext } from '@livekit/components-react';
-import { RemoteAudioTrack } from 'livekit-client';
+import { useEnsureParticipant, useEnsureTrackRef, useMaybeTrackRefContext } from '@livekit/components-react';
+import { RemoteAudioTrack, RemoteTrackPublication } from 'livekit-client';
 
 import { useMediaTrackBySourceOrName } from '@/livekit-react-offical/hooks/useMediaTrackBySourceOrName';
 import { useWebAudioContext } from '@/lib/context/webAudioContex';
@@ -14,22 +14,21 @@ import { denoiseMethod$} from '@/lib/observe/DenoiseMethodObs';
 import { useMainBrowser } from "@/lib/hooks/useMainBrowser";
 
 /** @public */
-export interface AudioTrackProps<T extends HTMLMediaElement = HTMLMediaElement>
-  extends React.HTMLAttributes<T> {
-  /** The track reference of the track from which the audio is to be rendered. */
-  trackRef?: TrackReference;
-  /** @deprecated This property will be removed in a future version use `trackRef` instead. */
-  source?: Track.Source;
-  /** @deprecated This property will be removed in a future version use `trackRef` instead. */
-  name?: string;
-  /** @deprecated This property will be removed in a future version use `trackRef` instead. */
-  participant?: Participant;
-  /** @deprecated This property will be removed in a future version use `trackRef` instead. */
-  publication?: TrackPublication;
-  onSubscriptionStatusChanged?: (subscribed: boolean) => void;
-  /** by the default the range is between 0 and 1 */
-  volume?: number;
-}
+export interface AudioTrackProps extends React.AudioHTMLAttributes<HTMLAudioElement> {
+    /** The track reference of the track from which the audio is to be rendered. */
+    trackRef?: TrackReference;
+  
+    onSubscriptionStatusChanged?: (subscribed: boolean) => void;
+    /** Sets the volume of the audio track. By default, the range is between `0.0` and `1.0`. */
+    volume?: number;
+    /**
+     * Mutes the audio track if set to `true`.
+     * @remarks
+     * If set to `true`, the server will stop sending audio track data to the client.
+     * @alpha
+     */
+    muted?: boolean;
+  }
 
 /**
  * The AudioTrack component is responsible for rendering participant audio tracks.
@@ -45,59 +44,60 @@ export interface AudioTrackProps<T extends HTMLMediaElement = HTMLMediaElement>
  * @see `ParticipantTile` component
  * @public
  */
-export function AudioTrack({
-  trackRef,
-  onSubscriptionStatusChanged,
-  volume,
-  source,
-  name,
-  publication,
-  participant: p,
-  ...props
-}: AudioTrackProps) {
-  // TODO: Remove and refactor all variables with underscore in a future version after the deprecation period.
-  const maybeTrackRef = useMaybeTrackRefContext();
-  const [speex, setSpeex] = React.useState<SpeexWorkletNode>()
-  const [rnn, setRNN] = React.useState<RnnoiseWorkletNode>()
+export const AudioTrack: (
+    props: AudioTrackProps & React.RefAttributes<HTMLAudioElement>,
+  ) => React.ReactNode = /* @__PURE__ */ React.forwardRef<HTMLAudioElement, AudioTrackProps>(
+    function AudioTrack(
+      { trackRef, onSubscriptionStatusChanged, volume, ...props }: AudioTrackProps,
+      ref,
+    ) {
+      const trackReference = useEnsureTrackRef(trackRef);
 
-  const ctx = useWebAudioContext()
-  // add cwy 查看当前选择的降噪方法是否为join
-const denoiseMethod = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
-const isMainBrowser  = useMainBrowser()
+    // add cwy 查看当前选择的降噪方法是否为join
+    const ctx = useWebAudioContext()
+    const [speex, setSpeex] = React.useState<SpeexWorkletNode>()
+    const [rnn, setRNN] = React.useState<RnnoiseWorkletNode>()      
+    const denoiseMethod = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
+    const isMainBrowser  = useMainBrowser()
 
-  const _name = trackRef?.publication?.trackName ?? maybeTrackRef?.publication?.trackName ?? name;
-  const _source = trackRef?.source ?? maybeTrackRef?.source ?? source;
-  const _publication = trackRef?.publication ?? maybeTrackRef?.publication ?? publication;
-  const _participant = trackRef?.participant ?? maybeTrackRef?.participant ?? p;
-  if (_source === undefined) {
-    throw new Error('The AudioTrack component expects a trackRef or source property.');
-  }
+      const mediaEl = React.useRef<HTMLAudioElement>(null);
+      React.useImperativeHandle(ref, () => mediaEl.current as HTMLAudioElement);
+  
+      const {
+        elementProps,
+        isSubscribed,
+        track,
+        publication: pub,
+      } = useMediaTrackBySourceOrName(trackReference, {
+        element: mediaEl,
+        props,
+      });
+  
+      React.useEffect(() => {
+        onSubscriptionStatusChanged?.(!!isSubscribed);
+      }, [isSubscribed, onSubscriptionStatusChanged]);
+  
+      React.useEffect(() => {
+        if (track === undefined || volume === undefined) {
+          return;
+        }
+        if (track instanceof RemoteAudioTrack) {
+          track.setVolume(volume);
+        } else {
+          log.warn('Volume can only be set on remote audio tracks.');
+        }
+      }, [volume, track]);
 
-  const mediaEl = React.useRef<HTMLAudioElement>(null);
-  const participant = useEnsureParticipant(_participant);
-
-  const { elementProps, isSubscribed, track } = useMediaTrackBySourceOrName(
-    { source: _source, name: _name, participant, publication: _publication },
-    {
-      element: mediaEl,
-      props,
-    },
-  );
-
-  React.useEffect(() => {
-    onSubscriptionStatusChanged?.(!!isSubscribed);
-  }, [isSubscribed, onSubscriptionStatusChanged]);
-
-  React.useEffect(() => {
-    if (track === undefined || volume === undefined) {
-      return;
-    }
-    if (track instanceof RemoteAudioTrack) {
-      track.setVolume(volume);
-    } else {
-      log.warn('volume can only be set on remote audio tracks');
-    }
-  }, [volume, track]);
+      React.useEffect(() => {
+        if (pub === undefined || props.muted === undefined) {
+          return;
+        }
+        if (pub instanceof RemoteTrackPublication) {
+          pub.setEnabled(!props.muted);
+        } else {
+          log.warn('Can only call setEnabled on remote track publications.');
+        }
+      }, [props.muted, pub, track]);
 
   React.useEffect(() => {
     if(!isMainBrowser || !track || !(track instanceof RemoteAudioTrack)) return
@@ -161,9 +161,8 @@ const isMainBrowser  = useMainBrowser()
         speex?.disconnect()
         rnn?.disconnect()
     }
-}, [denoiseMethod, track, ctx, isMainBrowser])
+}, [denoiseMethod, track,  isMainBrowser])
 
-  return (
-    <audio ref={mediaEl} {...elementProps}></audio>
-  )
-}
+    return <audio ref={mediaEl} {...elementProps} />;
+    },
+);
