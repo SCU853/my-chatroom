@@ -12,7 +12,7 @@ import { useLocalParticipantPermissions } from '@livekit/components-react';
 import { useMediaQuery, useObservableState } from '@/livekit-react-offical/hooks/internal';
 import { MediaDeviceMenu } from '@/components/MyMediaDeviceMenu';
 // import { MediaDeviceMenu } from '@livekit/components-react';
-import { presets, v_preset } from '@/lib/const';
+import { presets } from '@/lib/const';
 import { OptionPanel } from './OptionPannel';
 import { ShareVideoPannel } from './VideoShare/VideoSharePannel';
 import CameraMicIcon from './Icons/CameraMicIcon';
