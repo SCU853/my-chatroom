@@ -12,7 +12,7 @@ import { useLocalParticipantPermissions } from '@livekit/components-react';
 import { useMediaQuery, useObservableState } from '@/livekit-react-offical/hooks/internal';
 import { MediaDeviceMenu } from '@/components/MyMediaDeviceMenu';
 // import { MediaDeviceMenu } from '@livekit/components-react';
-import { v_preset } from '@/lib/const';
+import { presets, v_preset } from '@/lib/const';
 import { OptionPanel } from './OptionPannel';
 import { ShareVideoPannel } from './VideoShare/VideoSharePannel';
 import CameraMicIcon from './Icons/CameraMicIcon';
@@ -101,6 +101,11 @@ export function ControlBar({ variation, controls, ...props }: ControlBarProps) {
     setIsScreenShareEnabled(enabled);
   };
 
+  const getCurlVideoPrest = ()=>{
+    const s = localStorage.getItem('shareVideoPrest') || JSON.stringify(presets[0])
+    return JSON.parse(s)
+  }
+
   const htmlProps = mergeProps({ className: 'lk-control-bar' }, props);
 
   return (
@@ -186,7 +191,7 @@ export function ControlBar({ variation, controls, ...props }: ControlBarProps) {
           className=' btn btn-primary' 
           style={{ color:"white"}}
           source={Track.Source.ScreenShare}
-          captureOptions={{ audio: true, selfBrowserSurface: 'include', resolution:v_preset.resolution}}
+          captureOptions={{ audio: true, selfBrowserSurface: 'include', resolution: getCurlVideoPrest() || presets[0].preset?.resolution}}
           showIcon={showIcon}
           onChange={onScreenShareChange}
         >

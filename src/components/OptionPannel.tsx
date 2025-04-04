@@ -1,5 +1,5 @@
 import { compareObjects, deepClone } from "@/lib/client-utils";
-import { defaultAudioSetting } from "@/lib/const";
+import { defaultAudioSetting, presets } from "@/lib/const";
 import { useObservableState } from "@/livekit-react-offical/hooks/internal";
 import { denoiseMethod$ } from "@/lib/observe/DenoiseMethodObs";
 import { DenoiseMethod, RoomMetadata } from "@/lib/types";
@@ -23,6 +23,13 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
     const { t, i18n } = useTranslation()
     const ctx = useWebAudioContext()
     const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } =  useKrispNoiseFilter();
+    const [curShareVideoPrest, setCurShareVideoPrest]  = useState(presets[0])
+    
+    useEffect(() => {
+        const s = localStorage.getItem('shareVideoPrest') || JSON.stringify(presets[0])
+        setCurShareVideoPrest(JSON.parse(s || '{}'))
+    }, [])
+    
     const isnumber = (nubmer: string) => {
         const re = /^[1-9]\d*$/;//判断字符串是否为数字//判断正整数/[1−9]+[0−9]∗]∗/ 
         if (!re.test(nubmer)) {
@@ -58,6 +65,35 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
         if(compareObjects(localDenoiseConfig,denoiseSetting)) return
 
         denoiseMethod$.next(deepClone(localDenoiseConfig))
+        localStorage.setItem('denoiseMethod', JSON.stringify(localDenoiseConfig))
+        localStorage.setItem('shareVideoPrest', JSON.stringify(curShareVideoPrest))
+    }
+
+    const buildVideoShareOptions = ()=>{
+        return (
+            <div className=" my-2 w-full flex justify-around"   onChange={(v: any) => {
+                console.log("update!~", v.target.value)
+                for (let i = 0; i < presets.length; i++) {
+                    if (presets[i].nickname === v.target.value) {
+                        setCurShareVideoPrest(presets[i])
+                        break
+                    }
+                }
+            }}>
+                {
+                    presets.map(item=>
+                        <div key={item.nickname} className=" flex items-center gap-2 text-center">
+                            <input type="radio" value={item.nickname} name="123sadf" id={item.nickname} className="radio radio-success" checked={curShareVideoPrest?.nickname === item.nickname}
+                            onChange={(v) => {
+                                console.log(curShareVideoPrest?.nickname)
+                            }}
+                            ></input>
+                            <label htmlFor={item.nickname} >{item.nickname}</label>
+                        </div>
+                    )
+                }
+            </div>
+        )
     }
 
     const canUseKrisp = ()=>{
@@ -149,6 +185,16 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                         isMainBrowser && 
                         <div>
                         <div className=" divider mb-0"/>
+                                <span className=" sm:text-xl font-bold">{t('setting.cssp')}</span>
+                                {buildVideoShareOptions()}
+                        </div>
+                    }
+
+
+                    {
+                        isMainBrowser && 
+                        <div>
+                        <div className=" divider mb-0"/>
                                 <span className=" sm:text-xl font-bold">{t('setting.cdm')}</span>
                                 <div className=" my-2 w-full flex justify-around"   onChange={(v: any) => {
                                     if (localDenoiseConfig == null) return;
@@ -164,6 +210,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                                         new_config.rnn = true
                                     }
                                     setLocalDenoiseConfig(new_config);
+                                    // console.log(curShareVideoPrest)
                                     // console.log("update!~")
                                 }}>
                                     <div className=" flex items-center gap-2 text-center">
@@ -174,14 +221,14 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                                     </div>
 
                                     <div className=" flex items-center gap-2 text-center">
-                                    <input type="radio" value="speex" name="denoiseMethod2" id="denoiseMethod2" className="radio radio-success" checked={localDenoiseConfig ? localDenoiseConfig.speex : false}
+                                    <input type="radio" value="speex" name="denoiseMethod" id="denoiseMethod2" className="radio radio-success" checked={localDenoiseConfig ? localDenoiseConfig.speex : false}
                                      onChange={(v) => {}}
                                     ></input>
                                     <label htmlFor="denoiseMethod2" >Speex</label>
                                     </div>
 
                                     <div className=" flex items-center gap-2 text-center">
-                                    <input type="radio" value="rnn"  name="denoiseMethod3" id="denoiseMethod3" className="radio radio-success" checked={localDenoiseConfig ? localDenoiseConfig.rnn : false}
+                                    <input type="radio" value="rnn"  name="denoiseMethod" id="denoiseMethod3" className="radio radio-success" checked={localDenoiseConfig ? localDenoiseConfig.rnn : false}
                                      onChange={(v) => {}}
                                     ></input>
                                     <label htmlFor="denoiseMethod3" >Rnn</label>
@@ -199,7 +246,6 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                             const new_config = { ...localDenoiseConfig };
                             new_config.krispNoiseDenoise = v.target.checked
                             setLocalDenoiseConfig(new_config);
-                            localStorage.setItem('denoiseMethod', JSON.stringify(new_config))
                         }} />
                     </div>
                         

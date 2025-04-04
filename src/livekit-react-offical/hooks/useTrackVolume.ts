@@ -123,7 +123,6 @@ export function useMultibandTrackVolume(
   );
 
   React.useEffect(() => {
-    debugger
     if (!track || !track?.mediaStream) {
       return;
     }

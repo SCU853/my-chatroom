@@ -139,6 +139,9 @@ function ParticipantTile(
       [trackReference, layoutContext],
     );
 
+  const curEl = React.useRef<HTMLDivElement>(null)
+
+  const focusTrack = usePinnedTracks(layoutContext)?.[0];
   const [isAdmin, setIsAdmin] = React.useState(false)
   React.useEffect(()=>{
         if(p && p.metadata != undefined && p.metadata != ""){
@@ -147,12 +150,29 @@ function ParticipantTile(
         }
   },[p])
 
+  const fullscreen = React.useCallback(() => {
+    // console.log("get!~")
+    if (
+        trackReference.source &&
+        layoutContext &&
+        layoutContext.pin.dispatch &&
+        isTrackReferencePinned(trackReference, layoutContext.pin.state)){
+        console.log("get!~")
+        const t = curEl.current?.getElementsByTagName('video')
+        if(!t) return
+        for (let el of t) {
+            el.requestFullscreen()
+        }
+    }
+    }, [layoutContext, p, trackReference]);
+
+
   return (
     <div style={{ position: 'relative' }} {...elementProps}>
       <TrackRefContextIfNeeded trackRef={trackReference}>
         <ParticipantContextIfNeeded participant={trackReference.participant}>
           {children ?? (
-            <div style={{display: 'contents'}}>
+            <div style={{display: 'contents'}} ref={curEl}>
               {isTrackReference(trackReference) &&
               (trackReference.publication?.kind === 'video' ||
                 trackReference.source === Track.Source.Camera ||
@@ -217,6 +237,9 @@ function ParticipantTile(
           <div className=' absolute top-1 left-1 bg-black bg-opacity-50 rounded-sm px-1' >Admin</div>
         }
         <FocusToggle trackRef={trackReference} />
+        {
+           focusTrack &&  trackReference.source !== Track.Source.Camera && <FullIcon onClick={fullscreen} className='volume-muter absolute top-1 left-1 cursor-pointer bg-black/50 rounded-sm ' />
+        }
         </ParticipantContextIfNeeded>
       </TrackRefContextIfNeeded>
     </div>

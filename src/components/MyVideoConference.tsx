@@ -108,8 +108,9 @@ import { DenoiseMethod } from '@/lib/types';
     const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } =  useKrispNoiseFilter();
     React.useEffect(() => {
         // 只有livekit.cloud才能使用Krisp降噪
-        if((process.env.LIVEKIT_URL || "11")?.indexOf('livekit.cloud') < 0) return
+        if(process.env.NEXT_PUBLIC_IS_USE_CLOUD !== 'true') return
         const denoiseMethodStr = localStorage.getItem('denoiseMethod')
+        debugger
         const denoiseMethodObj: DenoiseMethod = denoiseMethodStr ? JSON.parse(denoiseMethodStr) : {...defaultAudioSetting.denoiseMethod}
         // enable Krisp by default
         setNoiseFilterEnabled(denoiseMethodObj.krispNoiseDenoise);

@@ -1,9 +1,53 @@
 import { VideoPresets, TrackPublishDefaults, TrackPublishOptions, ScreenSharePresets, AudioPresets, VideoPreset } from 'livekit-client';
 import { AudioSetting } from './types';
-export const xs_preset = new VideoPreset(1280, 720, 3_000_000, 30)
-export const s_preset = new VideoPreset(1280, 720, 6_000_000, 60)
-export const v_preset = new VideoPreset(1920, 1080, 10_000_000, 60)
-export const simulcast_set = [xs_preset, v_preset]
+let t = 0
+export const presets = [{
+    w: 1280,
+    h: 720,
+    bitrate: 3_000_000,
+    fps: 30,
+    nickname: '720p30',
+    preset: undefined as VideoPreset | undefined
+}, {
+    w: 1280,
+    h: 720,
+    bitrate: 6_000_000,
+    fps: 60,
+    nickname: '720p60',
+    preset: undefined as VideoPreset | undefined
+},{
+    w: 1920,
+    h: 1080,
+    bitrate: 10_000_000,
+    fps: 60,
+    nickname: '1080p60',
+    preset: undefined as VideoPreset | undefined
+},{
+    w: 1920,
+    h: 1080,
+    bitrate: 20_000_000,
+    fps: 60,
+    nickname: '1080p60plus',
+    preset: undefined as VideoPreset | undefined
+},{
+    w: 3840,
+    h: 2160,
+    bitrate: 20_000_000,
+    fps: 30,
+    nickname: '4k30',
+    preset: undefined as VideoPreset | undefined
+}
+]
+
+if(t === 0){
+    for(let i = 0; i < presets.length; i++){
+        const p = presets[i]
+        p.preset = new VideoPreset(p.w, p.h, p.bitrate, p.fps)
+    }
+    t++
+}
+
+export const simulcast_set = [presets[0].preset, presets[1].preset]
 export const defaultAudioSetting: AudioSetting = {
     autoGainControl: true,
     channelCount: 2,
@@ -24,9 +68,9 @@ export const publishDefaults: TrackPublishDefaults = {
     simulcast: false,
     // videoSimulcastLayers: simulcast_set,
     // screenShareEncoding: ScreenSharePresets.h1080fps15.encoding,
-    screenShareEncoding: v_preset.encoding,
+    screenShareEncoding: presets[0].preset?.encoding,
     stopMicTrackOnMute: false,
-    videoEncoding: v_preset.encoding ,
+    videoEncoding: presets[0].preset?.encoding,
     videoCodec: 'vp8',
     backupCodec: { codec: 'vp8', encoding: VideoPresets.h720.encoding },
 } as const;
