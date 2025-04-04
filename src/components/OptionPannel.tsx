@@ -71,7 +71,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
 
     const buildVideoShareOptions = ()=>{
         return (
-            <div className=" my-2 w-full flex justify-around"   onChange={(v: any) => {
+            <div className=" my-2 w-full grid grid-cols-3 gap-2 "   onChange={(v: any) => {
                 console.log("update!~", v.target.value)
                 for (let i = 0; i < presets.length; i++) {
                     if (presets[i].nickname === v.target.value) {
@@ -82,7 +82,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
             }}>
                 {
                     presets.map(item=>
-                        <div key={item.nickname} className=" flex items-center gap-2 text-center">
+                        <div key={item.nickname} className="py-2 flex items-center text-center">
                             <input type="radio" value={item.nickname} name="123sadf" id={item.nickname} className="radio radio-success" checked={curShareVideoPrest?.nickname === item.nickname}
                             onChange={(v) => {
                                 console.log(curShareVideoPrest?.nickname)
@@ -239,7 +239,9 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
 
                     <div className=" divider mb-0"/>
                     <div className="w-full flex justify-center space-x-2">
-                        <div>keKrispNoise</div>
+                        <div className="tooltip" data-tip={t('needCloud')}>
+                                <div>KrispNoise</div>
+                            </div>
                         <input type="checkbox"  checked={isUseKrispDenoise} disabled={isNoiseFilterPending || !canUseKrisp} className="checkbox" onChange={(v) => {
                             setIsUseKrispDenoise(v.target.checked)
 
@@ -249,7 +251,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                         }} />
                     </div>
                         
-                    <div className=" w-full flex justify-center">
+                    <div className="mt-2 w-full flex justify-center">
                         <label htmlFor="optionModel" className="btn btn-md btn-secondary border-none mt-2" onClick={handleSubmit}>
                             {t('done')}
                         </label>

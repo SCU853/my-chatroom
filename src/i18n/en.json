@@ -15,6 +15,7 @@
         "passwd": "Setting Password",
         "capacity": "Setting Capacity"
     },
+    "needCloud": "need use office cloud service",
     "Share":"Share",
     "mic":"Micphone",
     "camera": "Camera",
