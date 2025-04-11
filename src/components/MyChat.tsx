@@ -126,6 +126,15 @@ export function Chat({ messageFormatter, ...props }: ChatProps) {
             fileInput.onchange = async () => {
                 const file = fileInput.files?.[0];
                 if (!file) return;
+
+                // 验证文件类型
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('只允许上传图片文件 (JPEG, PNG, GIF, WEBP)');
+                    fileInput.value = '';
+                    return;
+                }
+
                 await send(encoder('', 'img'), {
                     attachments: Array.from(fileInput.files || []),
                 });

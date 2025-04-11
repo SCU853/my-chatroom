@@ -1,5 +1,5 @@
 import 'react-alert-confirm/lib/style.css';
-import AlertConfirm from "react-alert-confirm";
+// import AlertConfirm from "react-alert-confirm";
 import { decoder } from ".";
 
 export const formatter = (rawStr?: string) => {
