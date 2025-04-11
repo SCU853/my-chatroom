@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Only image files are allowed' });
       }
       // 处理文件保存逻辑
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', roomName);
+      const uploadDir = path.join(process.cwd(), 'uploads', roomName);
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
