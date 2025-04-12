@@ -40,7 +40,8 @@ useEffect(() => {
 
 const share = () => {
     let url = window.location.origin + window.location.pathname
-    if (roominfo_after_enter?.passwd) url += '?passwd=' + encodeURI(roominfo_after_enter.passwd);
+    url += '?backend='+mcurState.backend?.label
+    if (roominfo_after_enter?.passwd) url += '&passwd=' + encodeURI(roominfo_after_enter.passwd);
     navigator.clipboard.writeText(url);
     showToast(t('copySuccess'))
 }

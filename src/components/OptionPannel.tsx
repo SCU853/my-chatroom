@@ -11,9 +11,10 @@ import SettingIcon from "./Icons/SettingIcon";
 import { useTranslation } from "react-i18next";
 import { useWebAudioContext } from "@/lib/context/webAudioContex";
 import { useKrispNoiseFilter } from '@livekit/components-react/krisp';
+import { useDenoiseMethod } from "@/lib/hooks/useDenoise";
 export function OptionPanel({showIcon,showText, ...props}: any) {
     const roominfo_after_enter = useRoomInfo()
-    const denoiseSetting = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
+    const denoiseSetting = useDenoiseMethod()
     const mcurState = useCurState()
     const [capacity, setCapacity] = useState("");
     const [isUseKrispDenoise, setIsUseKrispDenoise] = useState(false);
@@ -117,8 +118,7 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                 } as RoomMetadata,
                 roomName: roomName
             };
-            console.log('mcurState',mcurState)
-            debugger
+
             const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json",

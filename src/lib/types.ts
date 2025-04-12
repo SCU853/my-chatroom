@@ -42,3 +42,9 @@ export interface RoomHistryType {
     passwd: string,
     username: string,
 }
+export type BackendType = {
+    url:string,
+    label:string,
+    apiKey?:string,
+    secret?:string,
+  }

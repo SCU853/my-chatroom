@@ -11,6 +11,9 @@ import { log } from '@livekit/components-core';
 import { RoomInfo } from './RoomInfo';
 import { useTranslation } from 'react-i18next';
 import { isMobileBrowser } from '@livekit/components-core';
+import { useBackend } from '@/lib/client-utils';
+import { BaseSelect } from './base/select';
+import { BackendType } from '@/lib/types';
 /** @public */
 export type LocalUserChoices = {
     username: string;
@@ -19,6 +22,7 @@ export type LocalUserChoices = {
     videoDeviceId: string;
     audioDeviceId: string;
     passwd: string;
+    backend?: BackendType; // 后端livekit的地址
   };
   
   const DEFAULT_USER_CHOICES: LocalUserChoices = {
@@ -27,7 +31,8 @@ export type LocalUserChoices = {
     audioEnabled: true,
     videoDeviceId: '',
     audioDeviceId: '',
-    passwd: ''
+    passwd: '',
+    backend: undefined
   };
   
   /** @public */
@@ -214,7 +219,9 @@ export type LocalUserChoices = {
     // userLabel = 'Username',
     ...htmlProps
   }: PreJoinProps) {
+    const { t, i18n } = useTranslation()
     const isMobile = React.useMemo(() => isMobileBrowser(), []);
+    const {backends, setBackend, getPrevBackend} = useBackend();
     const [passwd, setPasswd] = React.useState(defaults.passwd ?? '');
     const [userChoices, setUserChoices] = React.useState(DEFAULT_USER_CHOICES);
     const [username, setUsername] = React.useState(
@@ -291,16 +298,32 @@ export type LocalUserChoices = {
       [onValidate],
     );
   
+    const defaultBackend = React.useMemo(() => {
+        if (typeof window === 'undefined') {
+            return undefined; // SSR环境处理
+        }
+        const prevBackend = getPrevBackend()
+        if(!backends.length) return undefined;
+        const defaultBackend = defaults.backend 
+            || backends.find((item) => item.label === prevBackend?.label) 
+            || (backends.length?backends[0]: undefined);
+            
+        return defaultBackend;
+    }, [backends, defaults.backend])
+
     React.useEffect(() => {
-      const newUserChoices = {
+        if(!defaultBackend) return;
+        const newUserChoices = {
         username,
         videoEnabled,
         videoDeviceId,
         audioEnabled,
         audioDeviceId,
-        passwd: passwd
+        passwd: passwd,
+        backend: defaultBackend
       };
       setIsValid(handleValidation(newUserChoices));
+      defaultBackend && setBackend(defaultBackend);
       setUserChoices(newUserChoices);
     }, [
       username,
@@ -309,9 +332,10 @@ export type LocalUserChoices = {
       audioEnabled,
       audioDeviceId,
       videoDeviceId,
-      passwd
+      passwd,
+      backends,
+      defaultBackend
     ]);
-    const { t, i18n } = useTranslation()
 
     function handleSubmit(event: React.FormEvent) {
       event.preventDefault();
@@ -323,83 +347,108 @@ export type LocalUserChoices = {
         log.warn('Validation failed with: ', userChoices);
       }
     }
-  
-    return (
-        <div   className=" flex flex-col items-center justify-center pt-10" {...htmlProps}>
-        <RoomInfo roomName={roomName} />
-        <div className=" divider my-2"></div>
-          <div className="bg-primary rounded-lg">
-            <div className=" audio flex">
-            <TrackToggle
-                className=' btn btn-primary'
-                style={{ color:"white"}}
-              initialState={audioEnabled}
-              source={Track.Source.Microphone}
-              onChange={(enabled) => setAudioEnabled(enabled)}
-            >
-              {t('mic')}
-            </TrackToggle>
-            <div className=" relative flex-shrink-0 btn bg-primary border-none hover:bg-opacity-50 p-0">
-              <MediaDeviceMenu
-                initialSelection={audioDeviceId}
-                kind="audioinput"
-                disabled={!audioTrack}
-                tracks={{ audioinput: audioTrack }}
-                onActiveDeviceChange={(_, id) => setAudioDeviceId(id)}
-              />
-            </div>
-          </div>
-        </div>
-  
-        <form className={`flex flex-wrap justify-center mt-4 gap-2 ${isMobile ? 'flex-col items-center': ''}`}>
-          <input
-            className=" max-w-full rounded-lg border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition focus:border-white focus:outline-none focus:ring focus: ring-secondary-focus"
-            id="username"
-            name="username"
-            type="text"
-            defaultValue={username}
-            placeholder={t('username')}
-            onChange={(inputEl) => setUsername(inputEl.target.value)}
-            autoComplete="off"
-          />
-        
-        {/* 使用密码后若未设置NEXT_PUBLIC_DISABLE_E2EE，则开启e2ee, e2ee的key即为密码 */}
-        <input
-            className=" max-w-full rounded-lg border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition focus:border-white focus:outline-none focus:ring focus: ring-secondary-focus"
-            id="passwd"
-            name="passwd"
-            type="password"
-            defaultValue={passwd}
-            placeholder="enter passwd if you need"
-            onChange={(inputEl) => {setPasswd(inputEl.target.value)}}
-            autoComplete="off"
-        />
-        
+    
 
-        <button
-        className="btn btn-primary rounded-lg text-white h-[48px]  w-fit border-none font-bold"
-        type="submit"
-        onClick={(e)=>{
-            handleSubmit(e)
-        }}
-        disabled={!isValid}
-        >
-        👉 {t('Go')}
-        </button>
-        </form>
-  
-        {debug && (
-          <>
-            <strong>User Choices:</strong>
-            <ul className="lk-list" style={{ overflow: 'hidden', maxWidth: '15rem' }}>
-              <li>Username: {`${userChoices.username}`}</li>
-              {/* <li>Video Enabled: {`${userChoices.videoEnabled}`}</li> */}
-              <li>Audio Enabled: {`${userChoices.audioEnabled}`}</li>
-              {/* <li>Video Device: {`${userChoices.videoDeviceId}`}</li> */}
-              <li>Audio Device: {`${userChoices.audioDeviceId}`}</li>
-            </ul>
-          </>
-        )}
+    return (
+        <div className=" flex flex-col items-center justify-center pt-10" {...htmlProps}>
+       {
+            backends.length === 0 ? (
+                <></> 
+            ):
+            <div className='flex flex-col items-center justify-center pt-10'>
+                <RoomInfo roomName={roomName} />
+                <div className=" divider my-2"></div>
+                <div className="bg-primary rounded-lg">
+                    <div className=" audio flex">
+                    <TrackToggle
+                        className=' btn btn-primary'
+                        style={{ color:"white"}}
+                    initialState={audioEnabled}
+                    source={Track.Source.Microphone}
+                    onChange={(enabled) => setAudioEnabled(enabled)}
+                    >
+                    {t('mic')}
+                    </TrackToggle>
+                    <div className=" relative flex-shrink-0 btn bg-primary border-none hover:bg-opacity-50 p-0">
+                    <MediaDeviceMenu
+                        initialSelection={audioDeviceId}
+                        kind="audioinput"
+                        disabled={!audioTrack}
+                        tracks={{ audioinput: audioTrack }}
+                        onActiveDeviceChange={(_, id) => setAudioDeviceId(id)}
+                    />
+                    </div>
+                </div>
+                </div>
+        
+                <form className={`flex flex-wrap justify-center mt-4 gap-2 ${isMobile ? 'flex-col items-center': ''}`}>
+                <input
+                    className=" max-w-full rounded-lg border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition focus:border-white focus:outline-none focus:ring focus: ring-secondary-focus"
+                    id="username"
+                    name="username"
+                    type="text"
+                    defaultValue={username}
+                    placeholder={t('username')}
+                    onChange={(inputEl) => setUsername(inputEl.target.value)}
+                    autoComplete="off"
+                />
+                
+                {/* 使用密码后若未设置NEXT_PUBLIC_DISABLE_E2EE，则开启e2ee, e2ee的key即为密码 */}
+                <input
+                    className=" max-w-full rounded-lg border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition focus:border-white focus:outline-none focus:ring focus: ring-secondary-focus"
+                    id="passwd"
+                    name="passwd"
+                    type="password"
+                    defaultValue={passwd}
+                    placeholder="enter passwd if you need"
+                    onChange={(inputEl) => {setPasswd(inputEl.target.value)}}
+                    autoComplete="off"
+                />
+                
+    
+                <button
+                className="btn btn-primary rounded-lg text-white h-[48px]  w-fit border-none font-bold"
+                type="submit"
+                onClick={(e)=>{
+                    handleSubmit(e)
+                }}
+                disabled={!isValid}
+                >
+                👉 {t('Go')}
+                </button>
+                </form>
+        
+                <BaseSelect options={
+                    backends?.map((item)=>{
+                            return {
+                                label: item.label,
+                                value: item
+                            }
+                        })
+                        || []
+                    }
+                    className='h-[48px] absolute bottom-[1rem]'
+                    defaultValue={defaultBackend}
+                    placeholder={t('selectBackend')}
+                    onChange={(item)=>{
+                        setBackend(item)
+                        setUserChoices({...userChoices, backend: item})
+                    }}
+                />
+                {debug && (
+                <>
+                    <strong>User Choices:</strong>
+                    <ul className="lk-list" style={{ overflow: 'hidden', maxWidth: '15rem' }}>
+                    <li>Username: {`${userChoices.username}`}</li>
+                    {/* <li>Video Enabled: {`${userChoices.videoEnabled}`}</li> */}
+                    <li>Audio Enabled: {`${userChoices.audioEnabled}`}</li>
+                    {/* <li>Video Device: {`${userChoices.videoDeviceId}`}</li> */}
+                    <li>Audio Device: {`${userChoices.audioDeviceId}`}</li>
+                    </ul>
+                </>
+                )}
+            </div>
+       }
       </div>
     );
   }

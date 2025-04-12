@@ -2,23 +2,21 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import type { AccessTokenOptions, VideoGrant } from 'livekit-server-sdk';
-import { TokenResult, RoomMetadata } from '../../lib/types';
+import { TokenResult, RoomMetadata, BackendType } from '../../lib/types';
 import { lru } from '@/lib/lru';
 import { error } from 'console';
-const apiKey = process.env.LIVEKIT_API_KEY;
-const apiSecret = process.env.LIVEKIT_API_SECRET;
-const wsUrl = process.env.LIVEKIT_URL;
+import { getBackends } from '@/lib/server-utils';
+const backends = getBackends();
 
-export const createToken = async (userInfo: AccessTokenOptions, grant: VideoGrant) => {
-  const at = new AccessToken(apiKey, apiSecret, userInfo);
+export const createToken = async (userInfo: AccessTokenOptions, grant: VideoGrant, backend: BackendType) => {
+  const at = new AccessToken(backend.apiKey, backend.secret, userInfo);
   at.ttl = '24h';
   at.addGrant(grant);
   return await at.toJwt();
 };
-// TODO最后一个人离开房间时重置密码
 export default async function handleToken(req: NextApiRequest, res: NextApiResponse) {
 
-    const { roomName, identity, name, passwd, metadata } = req.body;
+    const { roomName, identity, name, passwd, metadata, backendLabel } = req.body;
     // console.log({ roomName, identity, name, metadata } )
     if (typeof identity !== 'string' || typeof roomName !== 'string') {
       res.status(403).end();
@@ -32,10 +30,22 @@ export default async function handleToken(req: NextApiRequest, res: NextApiRespo
         return res.status(500).json({ error: 'provide max one metadata string'});
     }
 
-    if (!apiKey || !apiSecret || !wsUrl) {
-      return res.status(500).json({ error: "Server misconfigured" });
+    if (!backendLabel) {
+      return res.status(500).json({ error: "Need specify backend" });
     }
-  
+
+    const backend = backends.find((item) => item.label === backendLabel);
+    if(!backend){
+      return res.status(500).json({ error: "Backend not found" });
+    }
+    const wsUrl = backend.url;
+    const apiKey = backend.apiKey;
+    const apiSecret = backend.secret
+
+    if (!apiKey || !apiSecret || !wsUrl) {
+        return res.status(500).json({ error: "Server misconfigured" });
+      }
+
     const livekitHost = wsUrl?.replace("wss://", "https://");
 
     const roomService = new RoomServiceClient(livekitHost, apiKey, apiSecret);
@@ -53,6 +63,7 @@ export default async function handleToken(req: NextApiRequest, res: NextApiRespo
     let metadataObj: any = undefined
     let metadataProcess = metadata;
     const defaultMaxParticipants = process.env.LIVEKIT_DEFAULT_MAXPARTICIPANTS ? parseInt(process.env.LIVEKIT_DEFAULT_MAXPARTICIPANTS) : 10
+    const lruKey = backendLabel + '-' + roomName
 
     try{
         const participants = await roomService.listParticipants(roomName);
@@ -80,11 +91,11 @@ export default async function handleToken(req: NextApiRequest, res: NextApiRespo
         // If room doesn't exist, user is room admin
         grant.roomAdmin = true;
         // set no passwrd
-        if(lru.get(roomName)){
-            lru.delete(roomName)
+        if(lru.get(lruKey)){
+            lru.delete(lruKey)
         }
         const t: RoomMetadata = {passwd: passwd, time: new Date().getTime(), maxParticipants: defaultMaxParticipants, numOfPaticipants: 0}
-        lru.set(roomName, t)
+        lru.set(lruKey, t)
         
         const rooms = await roomService.listRooms()
         if(rooms.findIndex((room)=> room.name === roomName) >= 0){
@@ -119,10 +130,10 @@ export default async function handleToken(req: NextApiRequest, res: NextApiRespo
         // console.log(`get passwd for ${roomName}, passwd: ${t2.passwd}`)
     }
 
-    const token = await createToken({ identity, name, metadata: metadataProcess }, grant);
-    const roomLRUItem: RoomMetadata = lru.get(roomName)
+    const token = await createToken({ identity, name, metadata: metadataProcess }, grant, backend);
+    const roomLRUItem: RoomMetadata = lru.get(lruKey)
     roomLRUItem.numOfPaticipants += 1;
-    lru.set(roomName, roomLRUItem)
+    lru.set(lruKey, roomLRUItem)
 
     const result: TokenResult = {
       identity,

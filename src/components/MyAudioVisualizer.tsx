@@ -7,6 +7,7 @@ import { denoiseMethod$ } from '@/lib/observe/DenoiseMethodObs';
 import { defaultAudioSetting } from '@/lib/const';
 import { useMainBrowser } from "@/lib/hooks/useMainBrowser";
 import { DenoiseMethod } from '@/lib/types';
+import { useDenoiseMethod } from '@/lib/hooks/useDenoise';
 /**
  * @public
  * @deprecated Use BarVisualizer instead
@@ -38,7 +39,7 @@ export const AudioVisualizer: (
     const barCount = 7;
     const trackReference = useEnsureTrackRef(trackRef);
     // add cwy 查看当前选择的降噪方法是否为join
-    const denoiseMethod = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
+    const denoiseMethod = useDenoiseMethod()
     const isMainBrowser  = useMainBrowser()
     let m: DenoiseMethod;
     if(isMainBrowser){

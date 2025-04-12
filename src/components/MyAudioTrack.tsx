@@ -9,9 +9,8 @@ import { useMediaTrackBySourceOrName } from '@/livekit-react-offical/hooks/useMe
 import { useWebAudioContext } from '@/lib/context/webAudioContex';
 import { defaultAudioSetting, rnnoiseWasmPath, rnnoiseWasmSimdPath, speexWasmPath } from '@/lib/const';
 import { SpeexWorkletNode, RnnoiseWorkletNode } from '@sapphi-red/web-noise-suppressor';
-import { useObservableState } from '@/livekit-react-offical/hooks/internal';
-import { denoiseMethod$} from '@/lib/observe/DenoiseMethodObs';
 import { useMainBrowser } from "@/lib/hooks/useMainBrowser";
+import { useDenoiseMethod } from '@/lib/hooks/useDenoise';
 
 /** @public */
 export interface AudioTrackProps extends React.AudioHTMLAttributes<HTMLAudioElement> {
@@ -57,7 +56,7 @@ export const AudioTrack: (
     const ctx = useWebAudioContext()
     const [speex, setSpeex] = React.useState<SpeexWorkletNode>()
     const [rnn, setRNN] = React.useState<RnnoiseWorkletNode>()      
-    const denoiseMethod = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
+    const denoiseMethod = useDenoiseMethod()
     const isMainBrowser  = useMainBrowser()
 
       const mediaEl = React.useRef<HTMLAudioElement>(null);

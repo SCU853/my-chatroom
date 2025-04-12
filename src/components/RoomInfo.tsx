@@ -6,7 +6,8 @@ import { roominfo$ } from "../lib/observe/RoomInfoObs";
 import { curState, curState$ } from "@/lib/observe/CurStateObs";
 import { useRoomInfo } from "@/lib/hooks/useRoomInfo";
 import { useTranslation } from "react-i18next";
-
+import { useBackend } from '@/lib/client-utils';
+import { useCurState } from "@/lib/hooks/useCurState";
 type Props = {
     roomName: string;
     join?: boolean
@@ -16,24 +17,27 @@ const DEFAULT_ROOM_INFO: RoomInfo = { num_participants: 0, hasPasswd: false, max
 
 export function RoomInfo({ roomName, join }: Props) {
     const [roomInfo, setRoomInfo] = useState<RoomInfo>(DEFAULT_ROOM_INFO);
+    const {prevBackend} = useBackend();
     const roominfo_after_enter = useRoomInfo()
     const { t, i18n } = useTranslation()
-    const cs : curState = {
-        join: false,
-        isAdmin: false,
-        hassPass: false
-    }
+    const mcurState = useCurState()
+    useEffect(() => {
+        console.log('Current prevBackend:', prevBackend); // 调试用
+    }, [prevBackend]);
     
+
     const fetchRoomInfo = useCallback(async () => {
-            const res = await fetch(`/api/info?roomName=${roomName}`);
+        debugger
+            if(!prevBackend?.label) return
+            const res = await fetch(`/api/info?backendLabel=${prevBackend.label}&roomName=${roomName}`);
             const _roomInfo = (await res.json()) as RoomInfo;
             
             setRoomInfo(_roomInfo);
             if(_roomInfo.hasPasswd != roomInfo.hasPasswd){
-                curState$.next({...cs, hassPass: _roomInfo.hasPasswd})
+                curState$.next({...mcurState, hassPass: _roomInfo.hasPasswd})
             }
         // }
-    }, [roomName]);
+    }, [roomName, prevBackend?.label, roomInfo.hasPasswd]);
 
     const humanRoomName = useMemo(() => {
         return decodeURI(roomName);
@@ -53,9 +57,9 @@ export function RoomInfo({ roomName, join }: Props) {
                 clearIntervalAsync(interval);
             };
         }
-    }, [join, roominfo_after_enter, fetchRoomInfo]);
+    }, [join, roominfo_after_enter, fetchRoomInfo ]);
     
-    if(!roomName) return null
+    if(!roomName) return <div></div>
 
     return (
         <div className="flex flex-col w-full space-y-2">

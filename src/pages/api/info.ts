@@ -3,7 +3,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { RoomServiceClient } from "livekit-server-sdk";
 import { RoomMetadata } from "@/lib/types";
 import { lru } from "@/lib/lru";
-
+import { getBackends } from "@/lib/server-utils";
+const backends = getBackends();
 export type RoomInfo = {
   num_participants: number;
   hasPasswd: boolean,
@@ -25,21 +26,25 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(400).json({ error: "Invalid method" });
   }
-
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
-  const wsUrl = process.env.LIVEKIT_URL;
-  const { roomName } = req.query;
-
-  if (!apiKey || !apiSecret || !wsUrl) {
-    return res.status(500).json({ error: "Server misconfigured" });
+  const { roomName, backendLabel } = req.query;
+  if (!backendLabel) {
+    return res.status(500).json({ error: "Need specify backend" });
   }
 
+  const backend = backends.find((item) => item.label === backendLabel);
+  if(!backend){
+    return res.status(500).json({ error: "Backend not found" });
+  }
+  const wsUrl = backend.url;
+  const apiKey = backend.apiKey;
+  const apiSecret = backend.secret
+  ;
   const livekitHost = wsUrl?.replace("wss://", "https://");
   const roomService = new RoomServiceClient(livekitHost, apiKey, apiSecret);
 
   try {
-    const l: (RoomMetadata | undefined) = lru.get(roomName as string) as RoomMetadata | undefined
+    const lruKey = backendLabel + '-' + roomName
+    const l: (RoomMetadata | undefined) = lru.get(lruKey as string) as RoomMetadata | undefined
     // for passwd debug
     // if(l) console.log(`get passwd for ${roomName}, passwd: ${l.passwd}`)
     // const participants = await roomService.listParticipants(roomName as string);

@@ -34,5 +34,6 @@
     "done":"Done",
     "home": "Home",
     "history": "History",
-    "copySuccess": "Copy Share Link Success"
+    "copySuccess": "Copy Share Link Success",
+    "selectBackend": "Select Livekit Backend"
 }

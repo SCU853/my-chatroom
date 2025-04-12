@@ -43,3 +43,5 @@ yarn-error.log*
 /public/uploads/*
 !public/uploads/README.md
 /cert
+
+livekit.config.json

@@ -15,7 +15,7 @@ import { useRouter } from 'next/router';
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DebugMode } from '../../lib/Debug';
 import { PreJoin, LocalUserChoices } from '@/components/MyPreJoin';
-import { useServerUrl } from '../../lib/client-utils';
+import { useServerUrls } from '../../lib/client-utils';
 import { log } from '@livekit/components-core';
 import { defaultAudioSetting, publishDefaults } from '@/lib/const';
 import { RoomHistryType, TokenResult } from '@/lib/types';
@@ -25,6 +25,7 @@ import { useSetContext } from '@/lib/context/setContext';
 import { useTranslation } from 'react-i18next';
 import { useCurState } from '@/lib/hooks/useCurState';
 import { formatter } from '@/lib/chat-utils/formatter';
+import { useBackend } from '@/lib/client-utils';
 log.setDefaultLevel(LogLevel.warn);
 const Home: NextPage = () => {
   const router = useRouter();
@@ -36,20 +37,22 @@ const Home: NextPage = () => {
     audioEnabled: true,
     audioDeviceId: '',
     passwd: '',
+    backend: undefined as any
   });
-
+  const {backends} = useBackend();
   useEffect(() => {
     //  获取url中query参数
-    const { passwd, username } = router.query;
-    if(passwd || username){
+    const { passwd, username, backend } = router.query;
+    if(passwd || username || backend){
         const ttt = {
             ...defaultOpt,
             passwd: passwd as string,
             username: username as string, 
+            backend: backends.find((item) => item.label === backend)
             }
         setDefaultOpt(ttt)
     }
-  }, [router]);
+  }, [router, backends]);
 
   return (
     <>
@@ -123,6 +126,7 @@ const ActiveRoom = ({ roomName, userChoices, onLeave }: ActiveRoomProps) => {
         name: userChoices.username,
         passwd: userChoices.passwd,
         roomName: roomName,
+        backendLabel: userChoices.backend?.label,
       };
       const response = await fetch(process.env.NEXT_PUBLIC_LK_TOKEN_ENDPOINT, {
         method: 'POST',
@@ -142,7 +146,7 @@ const ActiveRoom = ({ roomName, userChoices, onLeave }: ActiveRoomProps) => {
       const { error } = await response.json();
       throw error;
     },
-    [roomName, userChoices.passwd, userChoices.username],
+    [roomName, userChoices.passwd, userChoices.username, mcurState],
   );
 
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
@@ -184,9 +188,8 @@ const ActiveRoom = ({ roomName, userChoices, onLeave }: ActiveRoomProps) => {
   }, [roomName]);
 
   const router = useRouter();
-  const { region, hq } = router.query;
+  const { hq } = router.query;
 
-  const liveKitUrl = useServerUrl(region as string | undefined);
 
   const roomOptions = useMemo((): RoomOptions => {
     let setting: RoomOptions = {
@@ -229,10 +232,10 @@ const ActiveRoom = ({ roomName, userChoices, onLeave }: ActiveRoomProps) => {
 
   return (
     <div className="w-full top-16 relative" style={{ height: 'calc(100% - 4rem)' }}>
-      {liveKitUrl && audioContext && (
+      {userChoices?.backend?.url && audioContext && (
         <LiveKitRoom
           token={token?.accessToken}
-          serverUrl={liveKitUrl}
+          serverUrl={userChoices.backend.url}
           room={room}
           //   options={roomOptions}
           video={false}

@@ -3,14 +3,13 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { AccessToken, RoomServiceClient, TokenVerifier } from 'livekit-server-sdk';
 import { RoomMetadata, TokenResult } from '../../lib/types';
 import { lru } from '@/lib/lru';
-
-const apiKey = process.env.LIVEKIT_API_KEY;
-const apiSecret = process.env.LIVEKIT_API_SECRET;
-const wsUrl = process.env.LIVEKIT_URL;
+import { getBackends } from '@/lib/server-utils';
+const backends = getBackends();
 
 type REQ_BODY = {
     roomName: string
     metadata?:RoomMetadata
+    backendLabel: string
 }
 export default async function updateRoomMetadata(req: NextApiRequest, res: NextApiResponse) {
     // 验证 Authorization header
@@ -18,6 +17,20 @@ export default async function updateRoomMetadata(req: NextApiRequest, res: NextA
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
+    
+    const { roomName, metadata, backendLabel } = req.body as REQ_BODY;
+
+    if (!backendLabel) {
+        return res.status(500).json({ error: "Need specify backend" });
+      }
+  
+      const backend = backends.find((item) => item.label === backendLabel);
+      if(!backend){
+        return res.status(500).json({ error: "Backend not found" });
+      }
+    const wsUrl = backend.url;
+    const apiKey = backend.apiKey;
+    const apiSecret = backend.secret
 
     const token = authHeader.split(' ')[1];
     // 验证 LiveKit token
@@ -27,7 +40,6 @@ export default async function updateRoomMetadata(req: NextApiRequest, res: NextA
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const { roomName, metadata } = req.body as REQ_BODY;
 
     if(metadata == undefined) return res.status(500).json({ error: "please provide metadata"});
 
@@ -48,7 +60,9 @@ export default async function updateRoomMetadata(req: NextApiRequest, res: NextA
             JSON.stringify(metadata)
         )
         const t: RoomMetadata = metadata
-        lru.set(roomName, t)
+        const lruKey = backendLabel + '-' + roomName
+        const roomLRUItem: RoomMetadata = lru.get(lruKey)
+        lru.set(lruKey, {...roomLRUItem, ...t})
     }catch(e){
         return res.status(500).json({ error: 'setting metadata error'})
     }

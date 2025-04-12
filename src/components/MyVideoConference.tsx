@@ -37,6 +37,7 @@ import { denoiseMethod$ } from '@/lib/observe/DenoiseMethodObs';
 import { defaultAudioSetting } from '@/lib/const';
 import { useObservableState } from '@/livekit-react-offical/hooks/internal';
 import { DenoiseMethod } from '@/lib/types';
+import { useDenoiseMethod } from '@/lib/hooks/useDenoise';
   /**
    * @public
    */
@@ -79,7 +80,7 @@ import { DenoiseMethod } from '@/lib/types';
     const lastAutoFocusedScreenShareTrack = React.useRef<TrackReferenceOrPlaceholder | null>(null);
     
     // change by cwy
-    const denoiseMethod = useObservableState(denoiseMethod$, {...defaultAudioSetting.denoiseMethod});
+    const denoiseMethod = useDenoiseMethod()
     const room = useRoomContext()
     const participants = useParticipants()
     const sourceArrs = []

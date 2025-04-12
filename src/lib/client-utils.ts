@@ -1,26 +1,48 @@
 import { LocalAudioTrack, RemoteAudioTrack, AudioAnalyserOptions } from 'livekit-client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { rnnWorkletPath, rnnoiseWasmPath, rnnoiseWasmSimdPath, speexWasmPath, speexWorkletPath } from './const';
-import { DenoiseMethod } from './types';
-
-export function useServerUrl(region?: string) {
-  const [serverUrl, setServerUrl] = useState<string | undefined>();
+import { DenoiseMethod, BackendType } from './types';
+import {  curState$ } from "@/lib/observe/CurStateObs";
+import { useCurState } from './hooks/useCurState';
+export function useServerUrls() {
+  const [serverUrls, setServerUrls] = useState<BackendType[]>([]);
   useEffect(() => {
     let endpoint = `/api/url`;
-    if (region) {
-      endpoint += `?region=${region}`;
-    }
     fetch(endpoint).then(async (res) => {
       if (res.ok) {
-        const body = await res.json();
+        const body: BackendType[] = await res.json();
         console.log(body);
-        setServerUrl(body.url);
+        setServerUrls(body);
       } else {
         throw Error('Error fetching server url, check server logs');
       }
     });
-  },[region]);
-  return serverUrl;
+  },[]);
+  return serverUrls;
+}
+
+export function useBackend() {
+    const curState = useCurState();
+
+    const backends = useServerUrls();
+
+    const setBackend = useCallback((backend: BackendType) => {
+        if(!backend) return;
+        localStorage.setItem('backend', JSON.stringify(backend));
+        console.log('setBackend', backend);
+        curState$.next({...curState, backend});
+    }, [curState]);
+
+    const prevBackend = useMemo(() => curState.backend, [curState]);
+    
+
+
+    return {
+        prevBackend, // 直接暴露状态值
+        backends,
+        setBackend,  // 暴露更新方法
+        getPrevBackend: () => prevBackend // 改为直接返回当前状态
+    };
 }
 
 /**

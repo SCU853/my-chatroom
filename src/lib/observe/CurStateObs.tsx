@@ -1,13 +1,14 @@
 
-import { BehaviorSubject, Subject, scan, map, takeUntil } from 'rxjs';
-import { RoomMetadata, TokenResult } from '../types';
+import { BehaviorSubject, Subject, scan, map, takeUntil, share } from 'rxjs';
+import { BackendType, RoomMetadata, TokenResult } from '../types';
 export type curState = {
     join: boolean
     isAdmin: boolean,
     roomName?: string,
     hassPass?: boolean,
     roomMetadata?: RoomMetadata,
-    token?: TokenResult
+    token?: TokenResult,
+    backend?: BackendType
 }
 
 export const curState$ = new BehaviorSubject<curState>({
@@ -17,4 +18,10 @@ export const curState$ = new BehaviorSubject<curState>({
     hassPass: false,
     roomMetadata: undefined,
     token: undefined as TokenResult | undefined,
+    backend: undefined
 });
+
+// 创建共享数据流
+export const sharedCurState$ = curState$.pipe(
+    share()
+  );
