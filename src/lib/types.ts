@@ -25,8 +25,7 @@ export interface RoomMetadata  {
 
 export interface DenoiseMethod {
     speex: boolean
-    rnn: boolean,
-    krispNoiseDenoise: boolean
+    rnn: boolean
 }
 
 export interface AudioSetting  { 

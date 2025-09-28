@@ -10,19 +10,17 @@ import { useRoomInfo } from "@/lib/hooks/useRoomInfo";
 import SettingIcon from "./Icons/SettingIcon";
 import { useTranslation } from "react-i18next";
 import { useWebAudioContext } from "@/lib/context/webAudioContex";
-import { useKrispNoiseFilter } from '@livekit/components-react/krisp';
 import { useDenoiseMethod } from "@/lib/hooks/useDenoise";
 export function OptionPanel({showIcon,showText, ...props}: any) {
     const roominfo_after_enter = useRoomInfo()
     const denoiseSetting = useDenoiseMethod()
     const mcurState = useCurState()
     const [capacity, setCapacity] = useState("");
-    const [isUseKrispDenoise, setIsUseKrispDenoise] = useState(false);
     const [localDenoiseConfig, setLocalDenoiseConfig] = useState<DenoiseMethod>( {...defaultAudioSetting.denoiseMethod});
     const isMainBrowser  = useMainBrowser()
     const { t, i18n } = useTranslation()
     const ctx = useWebAudioContext()
-    const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } =  useKrispNoiseFilter();
+   
     const [curShareVideoPrest, setCurShareVideoPrest]  = useState(presets[0])
     const {curBackend} = useBackend();
     
@@ -33,7 +31,6 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
     
     useEffect(() => {
         setLocalDenoiseConfig(denoiseSetting)
-        setIsUseKrispDenoise(denoiseSetting.krispNoiseDenoise)
     }, [denoiseSetting])
 
     const isnumber = (nubmer: string) => {
@@ -100,11 +97,6 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                 }
             </div>
         )
-    }
-
-    const canUseKrisp = ()=>{
-        // 只有livekit.cloud才能使用Krisp降噪
-        return ((process.env.LIVEKIT_URL || "11")?.indexOf('livekit.cloud') > -1)
     }
 
     const updateRoomMeta = useCallback(
@@ -233,18 +225,6 @@ export function OptionPanel({showIcon,showText, ...props}: any) {
                     }
 
                     <div className=" divider mb-0"/>
-                    <div className="w-full flex justify-center space-x-2">
-                        <div className="tooltip" data-tip={t('needCloud')}>
-                                <div>KrispNoise</div>
-                            </div>
-                        <input type="checkbox"  checked={isUseKrispDenoise} disabled={isNoiseFilterPending || !canUseKrisp} className="checkbox" onChange={(v) => {
-                            setIsUseKrispDenoise(v.target.checked)
-
-                            const new_config = { ...localDenoiseConfig };
-                            new_config.krispNoiseDenoise = v.target.checked
-                            setLocalDenoiseConfig(new_config);
-                        }} />
-                    </div>
                         
                     <div className="mt-2 w-full flex justify-center">
                         <label htmlFor="optionModel" className="btn btn-md btn-secondary border-none mt-2" onClick={handleSubmit}>

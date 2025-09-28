@@ -55,8 +55,7 @@ export const defaultAudioSetting: AudioSetting = {
     noiseSuppression: true,
     denoiseMethod: {
         speex: false,
-        rnn: false,
-        krispNoiseDenoise: false
+        rnn: false
     },
 }
 

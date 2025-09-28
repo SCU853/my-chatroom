@@ -5,7 +5,7 @@ import type {
     WidgetState,
   } from '@livekit/components-core';
   import { isEqualTrackRef, isTrackReference, isWeb, log } from '@livekit/components-core';
-  import { RoomEvent, Track } from 'livekit-client';
+  import { LocalAudioTrack, RoomEvent, Track } from 'livekit-client';
   import * as React from 'react';
   import { useTracks, usePinnedTracks, LayoutContextProvider,
     FocusLayoutContainer,
@@ -104,17 +104,29 @@ import { useDenoiseMethod } from '@/lib/hooks/useDenoise';
 
 
     // 降噪方法
-    const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } =  useKrispNoiseFilter();
     React.useEffect(() => {
-        // 只有livekit.cloud才能使用Krisp降噪
-        if(process.env.NEXT_PUBLIC_IS_USE_CLOUD !== 'true') return
-        const denoiseMethodStr = localStorage.getItem('denoiseMethod')
         
-        const denoiseMethodObj: DenoiseMethod = denoiseMethodStr ? JSON.parse(denoiseMethodStr) : {...defaultAudioSetting.denoiseMethod}
-        // enable Krisp by default
-        setNoiseFilterEnabled(denoiseMethodObj.krispNoiseDenoise);
-        console.log('update Krisp', denoiseMethodObj.krispNoiseDenoise)
-      }, [denoiseMethod.krispNoiseDenoise]);
+            room?.on(RoomEvent.LocalTrackPublished, async (trackPublication) => {
+            if (
+                trackPublication.source === Track.Source.Microphone &&
+                trackPublication.track instanceof LocalAudioTrack
+            ) {
+                import('@livekit/krisp-noise-filter')
+                .then(({ KrispNoiseFilter, isKrispNoiseFilterSupported }) => {
+                    if (!isKrispNoiseFilterSupported()) {
+                        console.error('Enhanced noise filter is not supported for this browser');
+                        return;
+                    }
+                    trackPublication?.track
+                        // @ts-ignore
+                        ?.setProcessor(KrispNoiseFilter())
+                        .then(() => console.log('successfully set noise filter'));
+                })
+                .catch((e) => console.error('Failed to load noise filter', e));
+            }
+            });
+
+      }, [ room]);
 
     React.useEffect(() => {
         const denoiseMethodStr = localStorage.getItem('denoiseMethod')
