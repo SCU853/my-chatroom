@@ -59,6 +59,8 @@ function MyApp({ Component, pageProps }: AppProps) {
             />
             <TopBar />
             <Component {...pageProps} />
+            <script type="text/javascript" src="https://quantil.jsdelivr.net/gh/tokamakz/wsPlayer/mp4box.all.min.js"></script>
+            <script type="text/javascript" src="https://quantil.jsdelivr.net/gh/tokamakz/wsPlayer/wsPlayer.js"></script>
             {/* <Script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></Script> */}
             {process.env.NEXT_PUBLIC_UMAMI_URL != undefined && process.env.NEXT_PUBLIC_UMAMI_URL != "" && (
                 <Script
