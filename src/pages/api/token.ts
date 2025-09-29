@@ -95,7 +95,7 @@ export default async function handleToken(req: NextApiRequest, res: NextApiRespo
         if(lru.get(lruKey)){
             lru.delete(lruKey)
         }
-        const t: RoomMetadata = {passwd: passwd, time: new Date().getTime(), maxParticipants: defaultMaxParticipants, numOfPaticipants: 0}
+        const t: Partial<RoomMetadata> = {passwd: passwd, time: new Date().getTime(), maxParticipants: defaultMaxParticipants}
         lru.set(lruKey, t)
         
         const rooms = await roomService.listRooms()
@@ -133,7 +133,7 @@ export default async function handleToken(req: NextApiRequest, res: NextApiRespo
 
     const token = await createToken({ identity, name, metadata: metadataProcess }, grant, backend);
     const roomLRUItem: RoomMetadata = lru.get(lruKey)
-    roomLRUItem.numOfPaticipants += 1;
+
     lru.set(lruKey, roomLRUItem)
 
     const result: TokenResult = {
