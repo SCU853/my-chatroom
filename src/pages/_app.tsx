@@ -86,7 +86,7 @@ function MyApp({ Component, pageProps }: AppProps) {
             }
             {
                 process.env.NEXT_PUBLIC_USE_SHAREVIDEO === 'true' && (
-                    <Script type="text/javascript" src="https://npm.elemecdn.com/hls.js/dist/hls.min.js"></Script>
+                    <Script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.6.13/hls.min.js"></Script>
                 )
             }
         </>

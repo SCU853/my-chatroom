@@ -5,11 +5,13 @@ import Typist from 'react-typist-component';
 import { theme } from '@/lib/const';
 import { withTranslation, WithTranslation } from "react-i18next"
 import { RoomHistryType } from '@/lib/types';
+import { isMobileBrowser } from '@livekit/components-core';
 class HomeComponent extends React.Component<WithTranslation> {
   state = {
     roomIdText: '',
     cursor: "|",
     isClient: false,
+    isMobile: false,
   };
   constructor(props: any) {
     super(props);
@@ -24,12 +26,12 @@ class HomeComponent extends React.Component<WithTranslation> {
 
     componentDidMount() {
     // 仅在客户端执行
-    this.setState({ isClient: true });
+    this.setState({ isClient: true, isMobile: isMobileBrowser() });
   }
+
   render() {
     const { t, i18n } = this.props;
     const roomHistory = this.state.isClient ? JSON.parse(localStorage.getItem('roomHistory') || '[]') : [];
-    const isMobile = false
     return (
         <div className='Home flex flex-col justify-center space-y-4 items-center text-center mx-auto h-full w-full'>
             <div className='flex flex-col text-center justify-center'>
@@ -79,27 +81,28 @@ class HomeComponent extends React.Component<WithTranslation> {
            {
             roomHistory.length>0 &&
             <div className=' w-1/2'>
-                <div className="divider">{t('history')}</div>
+                <div className="divider">{this.state.isMobile}</div>
             </div>
            }
-            <div className={`flex justify-center grid ${isMobile? 'grid-cols-2':'grid-cols-3'} `}>
+ 
+            <div className={`flex justify-center grid ${this.state.isMobile? 'grid-cols-2':'grid-cols-3'} `}>
                 {roomHistory.map((item: RoomHistryType) => (
                     <Link key={item.roomName} href={`/${item.roomName}?passwd=${item.passwd}&username=${item.username}`}>
                         <div className="m-2 flex flex-col justify-center item-start space-y-2 bg-white/50 hover:bg-white/70 transition-colors duration-300 ease-in-out cursor-pointer 
                          rounded-lg p-2 hover:shadow-lg max-w-md">
                             <div className='flex space-x-2'>
-                                <div className='text-right'>
+                                <div className='text-right  text-nowrap'>
                                     {t('room.roomName') + ': ' }
                                 </div>
-                                <div>
+                                <div className='text-nowrap overflow-ellipsis overflow-hidden'>
                                     {item.roomName}
                                 </div>
                             </div>
                             <div className='flex space-x-2'>
-                                <div className='text-right'>
+                                <div className='text-right text-nowrap'>
                                     {t('username') + ': ' }
                                 </div>
-                                <div>
+                                <div className='text-nowrap overflow-ellipsis overflow-hidden'>
                                     {item.username}
                                 </div>
                             </div>
