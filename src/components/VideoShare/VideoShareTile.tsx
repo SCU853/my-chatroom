@@ -40,6 +40,13 @@ export const VideoShareTile = ({
     return sharedUrl.indexOf('index/api/webrtc') >= 0;
   }, [sharedUrl])
 
+//   ali RTS
+  const isArtc = React.useMemo(()=>{
+    const regex = /^artc:.*/i;
+    console.log("isArtc", regex.test(sharedUrl))
+    return regex.test(sharedUrl)
+  }, [sharedUrl])
+
   React.useEffect(()=>{
     if(!isWSMp4){
         return
@@ -53,6 +60,7 @@ export const VideoShareTile = ({
     // });
   }, [sharedUrl, isWSMp4])
 
+  // tencent tcplayer
   React.useEffect(()=>{
     if(!isWebrtc){
         return
@@ -89,6 +97,53 @@ export const VideoShareTile = ({
       };
   }, [sharedUrl, isWSMp4])
 
+// ali artc
+React.useEffect(()=>{
+    if(!isArtc){
+        return
+    }
+
+    const mediaElement = document.getElementById('player-artc-id');
+    if(!mediaElement) return;
+    function subscribeRts() {
+        aliRts.subscribe(sharedUrl, {
+          // mediaTimeout: 6000  // 自定义超时事件的触发时间
+          // retryTimes: 5,      // 自定义重连次数 默认5
+              // retryInterval: 2000,// 自定义重连间隔 默认2000ms
+        }).then((remoteStream: any) => {
+          remoteStream.play(mediaElement);
+        }).catch(() => {})
+      }
+    
+      // 初始化 SDK
+  const aliRts = (window as any).AliRTS?.createClient();
+    // 监听事件，详见 https://help.aliyun.com/document_detail/397570.html
+    aliRts.on('onError', (error: any) => {
+        console.log(error.errorCode, error.message); // 错误码、错误信息
+        // 降级判断
+        switch(error.errorCode){
+          case 10410:   // 拉流(订阅)重连彻底失败
+            // fallback(); // 降级
+            console.warn("拉流(订阅)重连彻底失败, 需要降级", error);
+            break;
+          default:
+        }
+      });
+
+      
+  // 检测浏览器是否支持
+  // 对于不在 https://help.aliyun.com/document_detail/397569.html 中的浏览器，可以选择跳过 isSupport 检查，直接执行 subscribeRts 拉流（有风险，需要自测保证）
+  aliRts.isSupport({ isReceiveVideo: true }).then((re: any)=> {
+        // 支持
+        subscribeRts();
+    }).catch((err: any)=> {
+        // 不支持
+        console.warn('浏览器不支持', err);
+        // fallback();
+    })
+})
+
+//   zlm webrtc
 React.useEffect(()=>{
     if(!isZlmWebrtc) return
 
@@ -139,12 +194,17 @@ React.useEffect(()=>{
             )
         }
         {
+            isArtc && (
+                <video autoPlay muted controls id="player-artc-id"></video>
+            )
+        }
+        {
             isWebrtc && (
                 <video autoPlay muted controls id="webrtc-sharevideo-container"></video>
             )
         }
         {
-            !isWSMp4 && !isWebrtc && !isZlmWebrtc && (
+            !isWSMp4 && !isWebrtc && !isZlmWebrtc && !isArtc && (
                 <MyPlayer sharedUrl={sharedUrl}/> 
             )
         }

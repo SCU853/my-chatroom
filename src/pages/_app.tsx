@@ -75,6 +75,11 @@ function MyApp({ Component, pageProps }: AppProps) {
                 )
             }
             {
+                process.env.NEXT_PUBLIC_USE_ALI_RTS === 'true' && (
+                    <Script type="text/javascript" src="https://g.alicdn.com/apsara-media-box/imp-web-rts-sdk/2.5.1/aliyun-rts-sdk.js"></Script>
+                )
+            }
+            {
                 process.env.NEXT_PUBLIC_USE_SHAREVIDEO === 'true' && (
                     <Script type="text/javascript" src='./ZLMRTCClient.js'></Script>
                 )
