@@ -49,7 +49,7 @@ export const presets = [{
 if(t === 0){
     for(let i = 0; i < presets.length; i++){
         const p = presets[i]
-        p.preset = new VideoPreset(p.w, p.h, p.bitrate, p.fps)
+        p.preset = new VideoPreset(p.w, p.h, p.bitrate, p.fps, 'medium')
     }
     t++
 }
@@ -77,7 +77,7 @@ export const publishDefaults: TrackPublishDefaults = {
     screenShareEncoding: presets[0].preset?.encoding,
     stopMicTrackOnMute: false,
     videoEncoding: presets[0].preset?.encoding,
-    videoCodec: 'vp8',
+    videoCodec: 'av1',
     backupCodec: { codec: 'vp8', encoding: VideoPresets.h720.encoding },
 } as const;
 
