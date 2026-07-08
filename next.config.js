@@ -8,9 +8,6 @@ const nextConfig = {
   swcMinify: true,
   experimental: {
     optimizeCss: false
-  },
-  compiler: {
-    styledComponents: false
   }
 };
 
